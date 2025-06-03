@@ -48,6 +48,9 @@ export const getUserTransactions = async (userId) => {
   try {
     const transactions = await prisma.payment.findMany({
       where: { userId },
+        include: {
+        token: true
+      },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -72,7 +75,16 @@ export const getUserTransactions = async (userId) => {
  */
 export const getTransactionDetail = async (userId, id) => {
   try {
-    const transaction = await prisma.payment.findUnique({ where: { id } });
+    const transaction = await prisma.payment.findFirst({
+      where: {
+        id: Number(id),
+        userId: userId
+      },
+      include: {
+        token: true
+      }
+    });
+
 
     if (!transaction || transaction.userId !== userId) {
       return {

@@ -17,16 +17,25 @@ model User {
 }
 
 model Payment {
-  id               Int      @id @default(autoincrement())
-  amount           Float
-  cryptoType       String
-  transactionHash  String   @unique
-  isCompleted      Boolean  @default(false)
-  isActive         Boolean  @default(true)
-  userId           Int
-  user             User     @relation(fields: [userId], references: [id])
-  createdAt        DateTime @default(now())
+  id              Int      @id @default(autoincrement())
+  amount          Float
+  cryptoType      String
+  transactionHash String   @unique
+  isCompleted     Boolean  @default(false)
+  isActive        Boolean  @default(true)
+  userId          Int
+  user            User     @relation(fields: [userId], references: [id])
+  createdAt       DateTime @default(now())
 
-  CPS  Float
-  ErcHash
+  token           Token?
+}
+
+model Token {
+  id            Int     @id @default(autoincrement())
+  paymentId     Int     @unique
+  token         Float
+  ercHash       String  @unique
+  currentPrice  Float
+
+  payment       Payment @relation(fields: [paymentId], references: [id])
 }
