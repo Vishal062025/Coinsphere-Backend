@@ -5,7 +5,7 @@ export const signup = async (req, res) => {
     const { statusCode, data, message, error } = await registerUser(req.body);
     res.status(statusCode).json({ data, message, error });
   } catch (err) {
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ error: err.message });
   }
 };
 
@@ -14,6 +14,6 @@ export const login = async (req, res) => {
     const { statusCode, data, message, error } = await loginUser(req.body);
     res.status(statusCode).json({ data, message, error });
   } catch (err) {
-    res.status(500).json({ error: 'Internal Server Error' });
+    res.status(500).json({ error: err.message });
   }
 };
