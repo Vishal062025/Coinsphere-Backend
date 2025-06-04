@@ -24,6 +24,7 @@ export const paymentQueue = new Queue("payment-verification", { connection });
 const provider = new ethers.JsonRpcProvider(process.env.BSC_RPC_URL);
 // const CPS_TOKEN_ADDRESS = process.env.CPS_TOKEN_ADDRESS;
 const CPS_ICO_TOKEN_ADDRESS = process.env.CPS_ICO_TOKEN_ADDRESS;
+const DIVIDUNT = process.env.DIVIDUNT;
 const CPS_ICO_TOKEN_ABI = [
   // Minimal ABI for transfer
   "function distributeTokens(address buyer_, uint256 amount_, uint256 dividunt_) external",
@@ -75,73 +76,100 @@ const getBNBPriceInUSDT = async () => {
     return null;
   }
 };
-
 new Worker(
   "payment-verification",
   async (job) => {
+    // console.log("👷 Worker started for job:", job.id);
+
     const { paymentId, transactionHash } = job.data;
+    // console.log("📄 Job data:", { paymentId, transactionHash });
+
     const status = await simulateStatusCheck(transactionHash);
+    // console.log("🔍 Simulated transaction status:", status);
 
     const payment = await prisma.payment.findUnique({
       where: { id: paymentId },
     });
-    if (!payment) return console.error(`No payment found with ID ${paymentId}`);
+    // console.log("💳 Fetched payment from DB:", payment);
 
-    if (!["BNB", "USDT"].includes(payment.cryptoType)) {
-      console.error(`❌ Invalid currency type in DB: ${payment.cryptoType}`);
+    if (!payment) {
+      // console.error(`❌ No payment found with ID ${paymentId}`);
       return;
     }
 
-    console.log({ status });
+    if (!["BNB", "USDT"].includes(payment.cryptoType)) {
+      // console.error(`❌ Invalid currency type in DB: ${payment.cryptoType}`);
+      return;
+    }
 
     if (status === "confirmed") {
+      // console.log("✅ Payment status confirmed");
+
       const tx = await getTransactionDetails(transactionHash);
+      // console.log("🔗 Fetched transaction details:", tx);
+
       const correctReceiver = process.env.CORRECT_RECEIVER?.toLowerCase();
-      console.log({ correctReceiver });
+      // console.log("📬 Correct receiver from ENV:", correctReceiver);
+
       if (!tx || !tx.to || tx.to.toLowerCase() !== correctReceiver) {
-        console.error("❌ Invalid or missing receiver address");
+        // console.error("❌ Invalid or missing receiver address");
         return;
       }
 
       const amount = parseFloat(ethers.formatEther(tx.value));
+      // console.log("💰 Converted transaction amount (ETH):", amount);
+
       if (amount !== parseFloat(payment.amount.toString())) {
-        console.error(
-          `❌ Payment amount mismatch. Expected: ${payment.amount}, Actual: ${amount}`
-        );
+        // console.error(
+          // `❌ Payment amount mismatch. Expected: ${payment.amount}, Actual: ${amount}`
+        // );
         return;
       }
 
       let tokenAmount = amount;
       if (payment.cryptoType === "BNB") {
-        let price = await getBNBPriceInUSDT();
+        // console.log("🔄 Converting BNB to USDT...");
+        const price = await getBNBPriceInUSDT();
+        // console.log("📈 Current BNB price in USDT:", price);
+
         if (!price) {
-          console.error("❌ Failed to fetch BNB price");
+          // console.error("❌ Failed to fetch BNB price");
           return;
         }
+
         tokenAmount = amount * price;
       }
-      console.log({ tokenAmount });
+      // console.log("🎯 Final tokenAmount (USDT value):", tokenAmount);
 
-      const cpsAmount =
+      let cpsAmount =
         Number(tokenAmount) / Number(process.env.CURRENT_STAGE_PRICE);
-      console.log({ cpsAmount });
-      // ✅ Send CPS token to sender
+      // console.log("📦 Calculated CPS tokens to distribute:", cpsAmount);
 
       try {
-        console.log("🚧 Starting Prisma transaction...");
-        console.log({ cpsIcoTokenContract });
+        // console.log("🚧 Starting Prisma transaction...");
+        // console.log("🚀 Distributing tokens via CPS contract");
+
         const txHash = await cpsIcoTokenContract
           .distributeTokens(
             tx.from,
             ethers.parseUnits(cpsAmount.toFixed(18), 18),
-            20
+            DIVIDUNT
           )
-          .then((res) => res)
+          .then((res) => {
+            // console.log("✅ Token transaction sent:", res.hash);
+            return res;
+          })
           .catch((err) => {
-            console.error("❌ Token transfer failed:", err.message);
+            // console.error("❌ Token transfer failed:", err.message);
             cpsAmount = 0;
           });
-        if (cpsAmount) await txHash.wait();
+
+        if (cpsAmount) {
+          // console.log("⏳ Waiting for CPS transaction to confirm...");
+          await txHash.wait();
+          // console.log("✅ CPS transaction confirmed");
+        }
+
         await prisma.$transaction([
           prisma.payment.update({
             where: { id: Number(paymentId) },
@@ -154,22 +182,22 @@ new Worker(
           prisma.token.create({
             data: {
               paymentId: Number(paymentId),
-              token: Number(cpsAmount), // ✅ FIXED HERE
+              token: Number(cpsAmount),
               ercHash: txHash.hash,
               currentPrice: Number(process.env.CURRENT_STAGE_PRICE),
             },
           }),
         ]);
-
-        console.log("✅ Prisma transaction completed");
+        // console.log("✅ Prisma transaction completed");
       } catch (err) {
         console.error("❌ Prisma transaction failed:", err);
       }
 
-      console.log(
-        `✅ Payment ${paymentId} confirmed. Sent CPS tokens and saved data.`
-      );
+      // console.log(
+      //   `✅ Payment ${paymentId} confirmed. Sent CPS tokens and saved data.`
+      // );
     } else if (status === "cancelled") {
+      // console.log("❌ Transaction status: cancelled");
       await prisma.payment.update({
         where: { id: paymentId },
         data: {
@@ -177,16 +205,20 @@ new Worker(
           isActive: false,
         },
       });
-      console.log(`❌ Payment ${paymentId} was cancelled.`);
+      // console.log(`🗑️ Payment ${paymentId} marked as cancelled.`);
     } else {
       const attempt = job.data.attempt || 1;
+      // console.log(`🔁 Retrying... Attempt #${attempt}`);
+
       await paymentQueue.add(
         "verify",
         { paymentId, transactionHash, attempt: attempt + 1 },
         { delay: Math.pow(2, attempt) * 1000 }
       );
-      console.log(`🔁 Retrying payment ${paymentId}, attempt ${attempt}`);
+      // console.log(`🕒 Scheduled retry for payment ${paymentId}`);
     }
+
+    // console.log("✅ Job completed for:", paymentId);
   },
   { connection }
 );
