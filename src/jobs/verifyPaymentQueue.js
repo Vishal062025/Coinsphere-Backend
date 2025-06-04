@@ -1,5 +1,8 @@
 import { Queue, Worker } from "bullmq";
-import { PrismaClient } from "@prisma/client";
+
+import pkg from '@prisma/client';
+const { PrismaClient } = pkg;
+
 import IORedis from "ioredis";
 import { ethers } from "ethers";
 import axios from "axios";
