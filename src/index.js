@@ -3,7 +3,8 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import authRoutes from './routes/auth.js';
 import paymentRoutes from './routes/payment.js';
-import { PrismaClient } from '@prisma/client';
+import pkg from '@prisma/client';
+const { PrismaClient } = pkg;
 
 dotenv.config();
 const app = express();

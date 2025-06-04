@@ -1,4 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import pkg from '@prisma/client';
+const { PrismaClient } = pkg;
 import { paymentQueue } from '../jobs/verifyPaymentQueue.js';
 
 const prisma = new PrismaClient();
