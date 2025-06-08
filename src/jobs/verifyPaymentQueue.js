@@ -1,12 +1,13 @@
 import { Queue, Worker } from "bullmq";
-
-import pkg from '@prisma/client';
+import pkg from "@prisma/client";
 const { PrismaClient } = pkg;
 
 import IORedis from "ioredis";
 import { ethers } from "ethers";
 import axios from "axios";
 import dotenv from "dotenv";
+import fs from "fs";
+import path from "path";
 
 dotenv.config();
 
@@ -22,35 +23,42 @@ const connection = new IORedis({
 export const paymentQueue = new Queue("payment-verification", { connection });
 
 const provider = new ethers.JsonRpcProvider(process.env.BSC_RPC_URL);
-// const CPS_TOKEN_ADDRESS = process.env.CPS_TOKEN_ADDRESS;
+const CORRECT_RECEIVER = process.env.CORRECT_RECEIVER.toLowerCase();
+const usdtTokenAddress = process.env.USDT_CONTRACT_ADDRESS?.toLowerCase();
 const CPS_ICO_TOKEN_ADDRESS = process.env.CPS_ICO_TOKEN_ADDRESS;
 const DIVIDUNT = process.env.DIVIDUNT;
+const CURRENT_STAGE_PRICE = parseFloat(process.env.CURRENT_STAGE_PRICE || "0.02");
+
 const CPS_ICO_TOKEN_ABI = [
-  // Minimal ABI for transfer
   "function distributeTokens(address buyer_, uint256 amount_, uint256 dividunt_) external",
 ];
+
 const wallet = new ethers.Wallet(process.env.OWNER_PRIVATE_KEY, provider);
 const cpsIcoTokenContract = new ethers.Contract(
   CPS_ICO_TOKEN_ADDRESS,
   CPS_ICO_TOKEN_ABI,
   wallet
 );
-// 🔄 Simulate actual status check using ethers
+
+const logToFile = (msg) => {
+  const logPath = path.resolve("logs/payment_worker_errors.log");
+  const logLine = `[${new Date().toISOString()}] ${msg}\n`;
+  fs.appendFileSync(logPath, logLine);
+};
+
 const simulateStatusCheck = async (txHash) => {
   try {
     const txReceipt = await provider.getTransactionReceipt(txHash);
     if (!txReceipt) return "pending";
-    if (txReceipt.status === 1) return "confirmed";
-    return "cancelled";
+    return txReceipt.status === 1 ? "confirmed" : "cancelled";
   } catch (err) {
-    console.error("Error checking status:", err);
+    logToFile(`Error checking status: ${err.message}`);
     return "pending";
   }
 };
 
 const getTransactionDetails = async (txHash) => {
-  const tx = await provider.getTransaction(txHash);
-  return tx;
+  return await provider.getTransactionReceipt(txHash);
 };
 
 const getBNBPriceInUSDT = async () => {
@@ -69,156 +77,138 @@ const getBNBPriceInUSDT = async () => {
     );
     return res.data.data.BNB.quote.USDT.price;
   } catch (error) {
-    console.error(
-      "Failed to fetch BNB price from CoinMarketCap:",
-      error.message
-    );
+    logToFile(`Failed to fetch BNB price from CoinMarketCap: ${error.message}`);
     return null;
   }
 };
+
 new Worker(
   "payment-verification",
   async (job) => {
-    // console.log("👷 Worker started for job:", job.id);
-
     const { paymentId, transactionHash } = job.data;
-    // console.log("📄 Job data:", { paymentId, transactionHash });
 
-    const status = await simulateStatusCheck(transactionHash);
-    // console.log("🔍 Simulated transaction status:", status);
+    try {
+      console.log("👷 Worker started for job:", job.id);
+      const status = await simulateStatusCheck(transactionHash);
+      console.log("🔍 Transaction status:", status);
 
-    const payment = await prisma.payment.findUnique({
-      where: { id: paymentId },
-    });
-    // console.log("💳 Fetched payment from DB:", payment);
+      const payment = await prisma.payment.findUnique({ where: { id: paymentId } });
+      if (!payment) throw `❌ No payment found with ID ${paymentId}`;
 
-    if (!payment) {
-      // console.error(`❌ No payment found with ID ${paymentId}`);
-      return;
-    }
-
-    if (!["BNB", "USDT"].includes(payment.cryptoType)) {
-      // console.error(`❌ Invalid currency type in DB: ${payment.cryptoType}`);
-      return;
-    }
-
-    if (status === "confirmed") {
-      // console.log("✅ Payment status confirmed");
-
-      const tx = await getTransactionDetails(transactionHash);
-      // console.log("🔗 Fetched transaction details:", tx);
-
-      const correctReceiver = process.env.CORRECT_RECEIVER?.toLowerCase();
-      // console.log("📬 Correct receiver from ENV:", correctReceiver);
-
-      if (!tx || !tx.to || tx.to.toLowerCase() !== correctReceiver) {
-        // console.error("❌ Invalid or missing receiver address");
-        return;
+      if (!["BNB", "USDT"].includes(payment.cryptoType)) {
+        throw `❌ Invalid currency type: ${payment.cryptoType}`;
       }
 
-      const amount = parseFloat(ethers.formatEther(tx.value));
-      // console.log("💰 Converted transaction amount (ETH):", amount);
+      if (status === "confirmed") {
+        const tx = await getTransactionDetails(transactionHash);
+        const sender = tx.from?.toLowerCase();
+        if (!sender) throw "❌ Missing sender address";
 
-      if (amount !== parseFloat(payment.amount.toString())) {
-        // console.error(
-          // `❌ Payment amount mismatch. Expected: ${payment.amount}, Actual: ${amount}`
-        // );
-        return;
-      }
+        let tokenAmount = 0;
+        let amountPaid = 0;
 
-      let tokenAmount = amount;
-      if (payment.cryptoType === "BNB") {
-        // console.log("🔄 Converting BNB to USDT...");
-        const price = await getBNBPriceInUSDT();
-        // console.log("📈 Current BNB price in USDT:", price);
+        if (payment.cryptoType === "BNB") {
+          if (tx.to.toLowerCase() !== CORRECT_RECEIVER) {
+            throw `❌ Address mismatch. Expected: ${CORRECT_RECEIVER}, Got: ${tx.to}`;
+          }
 
-        if (!price) {
-          // console.error("❌ Failed to fetch BNB price");
-          return;
+          amountPaid = parseFloat(ethers.formatEther(tx.value));
+          if (amountPaid !== parseFloat(payment.amount.toString())) {
+            throw `❌ Amount mismatch. Expected: ${payment.amount}, Got: ${amountPaid}`;
+          }
+
+          const price = await getBNBPriceInUSDT();
+          if (!price) throw "❌ Failed to fetch BNB price.";
+
+          tokenAmount = amountPaid * price;
         }
 
-        tokenAmount = amount * price;
-      }
-      // console.log("🎯 Final tokenAmount (USDT value):", tokenAmount);
+        if (payment.cryptoType === "USDT") {
+          const iface = new ethers.Interface([
+            "event Transfer(address indexed from, address indexed to, uint256 value)",
+          ]);
+          let validTransfer = false;
+          let usdtAmount = 0;
 
-      let cpsAmount =
-        Number(tokenAmount) / Number(process.env.CURRENT_STAGE_PRICE);
-      // console.log("📦 Calculated CPS tokens to distribute:", cpsAmount);
+          for (const log of tx.logs || []) {
+            if (log.address.toLowerCase() === usdtTokenAddress) {
+              const parsed = iface.parseLog(log);
+              const { to, value } = parsed.args;
+              if (to.toLowerCase() === CORRECT_RECEIVER) {
+                validTransfer = true;
+                usdtAmount = parseFloat(ethers.formatUnits(value, 18));
+                break;
+              }
+            }
+          }
 
-      try {
-        // console.log("🚧 Starting Prisma transaction...");
-        // console.log("🚀 Distributing tokens via CPS contract");
+          if (!validTransfer) throw "❌ Valid USDT transfer not found.";
+          amountPaid = usdtAmount;
+          tokenAmount = usdtAmount;
+        }
 
-        const txHash = await cpsIcoTokenContract
-          .distributeTokens(
-            tx.from,
+        const cpsAmount = tokenAmount / CURRENT_STAGE_PRICE;
+        let tokenTx;
+        try {
+          tokenTx = await cpsIcoTokenContract.distributeTokens(
+            sender,
             ethers.parseUnits(cpsAmount.toFixed(18), 18),
-            DIVIDUNT
-          )
-          .then((res) => {
-            // console.log("✅ Token transaction sent:", res.hash);
-            return res;
-          })
-          .catch((err) => {
-            // console.error("❌ Token transfer failed:", err.message);
-            cpsAmount = 0;
-          });
-
-        if (cpsAmount) {
-          // console.log("⏳ Waiting for CPS transaction to confirm...");
-          await txHash.wait();
-          // console.log("✅ CPS transaction confirmed");
+            BigInt(DIVIDUNT)
+          );
+          console.log("🚀 Token TX:", tokenTx.hash);
+          await tokenTx.wait();
+        } catch (err) {
+          throw `❌ Token distribution failed: ${err.message}`;
         }
 
-        await prisma.$transaction([
-          prisma.payment.update({
-            where: { id: Number(paymentId) },
-            data: {
-              isCompleted: true,
-              isActive: false,
-              amount,
-            },
-          }),
-          prisma.token.create({
-            data: {
-              paymentId: Number(paymentId),
-              token: Number(cpsAmount),
-              ercHash: txHash.hash,
-              currentPrice: Number(process.env.CURRENT_STAGE_PRICE),
-            },
-          }),
-        ]);
-        // console.log("✅ Prisma transaction completed");
-      } catch (err) {
-        console.error("❌ Prisma transaction failed:", err);
+        try {
+          await prisma.$transaction([
+            prisma.payment.update({
+              where: { id: paymentId },
+              data: {
+                isCompleted: true,
+                isActive: false,
+                amount: amountPaid,
+              },
+            }),
+            prisma.token.create({
+              data: {
+                paymentId,
+                token: cpsAmount,
+                ercHash: tokenTx?.hash || "",
+                currentPrice: CURRENT_STAGE_PRICE,
+              },
+            }),
+          ]);
+          console.log("✅ DB update complete.");
+        } catch (err) {
+          throw `❌ DB update failed: ${err.message}`;
+        }
+
+      } else if (status === "cancelled") {
+        await prisma.payment.update({
+          where: { id: paymentId },
+          data: {
+            isCompleted: false,
+            isActive: false,
+          },
+        });
+        console.log(`🗑️ Payment ${paymentId} marked as cancelled.`);
+      } else {
+        const attempt = job.data.attempt || 1;
+        console.log(`⏳ Retrying transaction ${transactionHash}, Attempt #${attempt}`);
+        await paymentQueue.add(
+          "payment-verification",
+          { paymentId, transactionHash, attempt: attempt + 1 },
+          { delay: 1000 * 2 ** attempt, attempts: 5 }
+        );
       }
 
-      // console.log(
-      //   `✅ Payment ${paymentId} confirmed. Sent CPS tokens and saved data.`
-      // );
-    } else if (status === "cancelled") {
-      // console.log("❌ Transaction status: cancelled");
-      await prisma.payment.update({
-        where: { id: paymentId },
-        data: {
-          isCompleted: false,
-          isActive: false,
-        },
-      });
-      // console.log(`🗑️ Payment ${paymentId} marked as cancelled.`);
-    } else {
-      const attempt = job.data.attempt || 1;
-      // console.log(`🔁 Retrying... Attempt #${attempt}`);
-
-      await paymentQueue.add(
-        "verify",
-        { paymentId, transactionHash, attempt: attempt + 1 },
-        { delay: Math.pow(2, attempt) * 1000 }
-      );
-      // console.log(`🕒 Scheduled retry for payment ${paymentId}`);
+    } catch (err) {
+      const error = `❌ Worker error: ${err}`;
+      logToFile(error);
+      console.error(error);
     }
-
-    // console.log("✅ Job completed for:", paymentId);
   },
   { connection }
 );

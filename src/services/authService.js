@@ -5,7 +5,7 @@ const { PrismaClient } = pkg;
 
 const prisma = new PrismaClient();
 
-export const registerUser = async ({ email, password, confirmPassword }) => {
+export const _registerUser = async ({ email, password, confirmPassword }) => {
   if (!email || !password || !confirmPassword) {
     return {
       statusCode: 400,
@@ -41,7 +41,7 @@ export const registerUser = async ({ email, password, confirmPassword }) => {
   };
 };
 
-export const loginUser = async ({ email, password }) => {
+export const _loginUser = async ({ email, password }) => {
   if (!email || !password) {
     return {
       statusCode: 400,

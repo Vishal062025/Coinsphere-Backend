@@ -4,7 +4,7 @@ import { paymentQueue } from '../jobs/verifyPaymentQueue.js';
 
 const prisma = new PrismaClient();
 
-export const createPaymentService = async (body, userId) => {
+export const _createPaymentService = async (body, userId) => {
   const { amount, cryptoType, transactionHash } = body;
 
   // Check if transactionHash already exists
@@ -29,7 +29,7 @@ export const createPaymentService = async (body, userId) => {
   });
 
   // Add to queue
-  await paymentQueue.add('verify', {
+  await paymentQueue.add("verify", {
     paymentId: payment.id,
     transactionHash
   });
@@ -45,7 +45,7 @@ export const createPaymentService = async (body, userId) => {
 /**
  * Get all transactions for a user
  */
-export const getUserTransactions = async (userId) => {
+export const _getUserTransactions = async (userId) => {
   try {
     const transactions = await prisma.payment.findMany({
       where: { userId },
@@ -74,7 +74,7 @@ export const getUserTransactions = async (userId) => {
 /**
  * Get a single transaction by ID
  */
-export const getTransactionDetail = async (userId, id) => {
+export const _getTransactionDetail = async (userId, id) => {
   try {
     const transaction = await prisma.payment.findFirst({
       where: {

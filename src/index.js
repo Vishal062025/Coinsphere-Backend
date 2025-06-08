@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import authRoutes from './routes/auth.js';
 import paymentRoutes from './routes/payment.js';
+import tokenRoutes from './routes/token.js';
 import pkg from '@prisma/client';
 
 const { PrismaClient } = pkg;
@@ -23,6 +24,7 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/token', tokenRoutes);
 
 // Health check
 app.get('/', (req, res) => res.send('API Running'));
