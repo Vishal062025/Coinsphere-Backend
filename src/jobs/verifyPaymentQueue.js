@@ -27,7 +27,9 @@ const CORRECT_RECEIVER = process.env.CORRECT_RECEIVER.toLowerCase();
 const usdtTokenAddress = process.env.USDT_CONTRACT_ADDRESS?.toLowerCase();
 const CPS_ICO_TOKEN_ADDRESS = process.env.CPS_ICO_TOKEN_ADDRESS;
 const DIVIDUNT = process.env.DIVIDUNT;
-const CURRENT_STAGE_PRICE = parseFloat(process.env.CURRENT_STAGE_PRICE || "0.02");
+const CURRENT_STAGE_PRICE = parseFloat(
+  process.env.CURRENT_STAGE_PRICE || "0.02"
+);
 
 const CPS_ICO_TOKEN_ABI = [
   "function distributeTokens(address buyer_, uint256 amount_, uint256 dividunt_) external",
@@ -86,13 +88,15 @@ new Worker(
   "payment-verification",
   async (job) => {
     const { paymentId, transactionHash } = job.data;
-
+    console.log(job.data);
     try {
       console.log("👷 Worker started for job:", job.id);
       const status = await simulateStatusCheck(transactionHash);
       console.log("🔍 Transaction status:", status);
 
-      const payment = await prisma.payment.findUnique({ where: { id: paymentId } });
+      const payment = await prisma.payment.findUnique({
+        where: { id: paymentId },
+      });
       if (!payment) throw `❌ No payment found with ID ${paymentId}`;
 
       if (!["BNB", "USDT"].includes(payment.cryptoType)) {
@@ -175,16 +179,30 @@ new Worker(
               data: {
                 paymentId,
                 token: cpsAmount,
-                ercHash: tokenTx?.hash || "",
+                ercHash: tokenTx?.hash,
                 currentPrice: CURRENT_STAGE_PRICE,
               },
             }),
           ]);
+          console.log({ job });
+          if (job.data.reward?.userId) {
+            await prisma.reward.create({
+              data: {
+                userId: job.data.reward.userId, // Referrer receiving the reward
+                rewardById: job.data.reward.rewardById, // User who made the purchase
+                referralPurchaseCSP: cpsAmount, // Amount of CSP purchased
+                rewardCSP: cpsAmount * 0.1, // Assuming 10% reward
+                isTeamReward: false,
+                isCompleted: true, // Mark as completed since tokens are distributed
+              },
+            });
+            console.log("🎁 Referral reward saved.");
+          }
+
           console.log("✅ DB update complete.");
         } catch (err) {
           throw `❌ DB update failed: ${err.message}`;
         }
-
       } else if (status === "cancelled") {
         await prisma.payment.update({
           where: { id: paymentId },
@@ -196,14 +214,15 @@ new Worker(
         console.log(`🗑️ Payment ${paymentId} marked as cancelled.`);
       } else {
         const attempt = job.data.attempt || 1;
-        console.log(`⏳ Retrying transaction ${transactionHash}, Attempt #${attempt}`);
+        console.log(
+          `⏳ Retrying transaction ${transactionHash}, Attempt #${attempt}`
+        );
         await paymentQueue.add(
           "payment-verification",
           { paymentId, transactionHash, attempt: attempt + 1 },
           { delay: 1000 * 2 ** attempt, attempts: 5 }
         );
       }
-
     } catch (err) {
       const error = `❌ Worker error: ${err}`;
       logToFile(error);

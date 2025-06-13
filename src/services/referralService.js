@@ -1,0 +1,122 @@
+import pkg from '@prisma/client';
+const { PrismaClient } = pkg;
+const prisma = new PrismaClient();
+
+export const _handleReferral = async (userId) => {
+  try {
+    // Step 1: Fetch all team members (including nested) from ReferralTree
+    const referralTree = await prisma.referralTree.findMany({
+      where: { rootId: userId },
+      select: {
+        childId: true,
+        child: {
+          select: {
+            id: true,
+            email: true,
+            payments: {
+              where: { isCompleted: true },
+              include: {
+                token: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Step 2: Build team structure & calculate each member's total purchase
+    const teamMap = new Map();
+
+    for (const node of referralTree) {
+      const child = node.child;
+      if (!child) continue;
+
+      let totalPurchase = 0;
+      for (const payment of child.payments) {
+        if (payment.token?.token && payment.token?.currentPrice) {
+          totalPurchase += payment.token.token * payment.token.currentPrice;
+        }
+      }
+
+      if (!teamMap.has(child.id)) {
+        teamMap.set(child.id, {
+          id: child.id,
+          email: child.email,
+          totalPurchase,
+        });
+      } else {
+        teamMap.get(child.id).totalPurchase += totalPurchase;
+      }
+    }
+
+    const teamMembers = Array.from(teamMap.values());
+
+    const teamTotalPurchase = teamMembers.reduce(
+      (sum, m) => sum + m.totalPurchase,
+      0
+    );
+
+    // Step 3: Direct reward (from own referred purchases)
+    const myDirectReward = await prisma.reward.aggregate({
+      where: {
+        userId,
+        isTeamReward: false,
+        isCompleted: true,
+      },
+      _sum: {
+        rewardCSP: true,
+      },
+    });
+    const myTotalReward = Number(myDirectReward._sum.rewardCSP || 0);
+
+    // Step 4: All rewards including team reward
+    const totalRewardAggregate = await prisma.reward.aggregate({
+      where: { userId, isCompleted:true, },
+      _sum: {
+        rewardCSP: true,
+      },
+    });
+    const totalRewardCSP = Number(totalRewardAggregate._sum.rewardCSP || 0);
+
+    // Step 5: Claimed CSP
+    const claimed = await prisma.rewardData.findUnique({
+      where: { userId },
+    });
+    const totalClaimedCSP = Number(claimed?.claimedCSP || 0);
+
+    // Step 6: Unclaimed
+    const totalAvailableToClaim = totalRewardCSP - totalClaimedCSP;
+
+    // Step 7: Count direct referrals
+    const totalDirectReferrals = await prisma.user.count({
+      where: { referredById: userId },
+    });
+
+    // ✅ Step 8: Total team members (from ReferralTree)
+    const totalTeamMembers = await prisma.referralTree.count({
+      where: { rootId: userId },
+    });
+
+    // Final Response
+    return {
+      statusCode: 200,
+      data: {
+        referralId: userId,
+        myReward: myTotalReward,
+        mydirectReferral: totalDirectReferrals,
+        totalAvailableToClaim,
+        totalTeamMembers,
+        teamTotalPurchase: `$ ${teamTotalPurchase.toFixed(2)}`,
+      },
+      message: 'User referral data',
+      error: null,
+    };
+  } catch (err) {
+    return {
+      statusCode: 500,
+      data: null,
+      message: 'Failed to fetch referral data',
+      error: err.message,
+    };
+  }
+};

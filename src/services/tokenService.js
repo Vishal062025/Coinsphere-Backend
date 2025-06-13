@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 /**
  * Get total tokens and payout (USD) globally or per user
- * @param {number|null} userId - Optional user ID
+ * @param {string|null} userId - Optional user ID (UUID)
  * @returns {object} - Response with total tokens and USD payout
  */
 export const _handleTotalToken = async (userId = null) => {
@@ -16,7 +16,7 @@ export const _handleTotalToken = async (userId = null) => {
     let tokensData;
 
     if (userId) {
-      // Get tokens linked to payments made by this user
+      // Get tokens linked to payments made by this user (UUID)
       tokensData = await prisma.token.findMany({
         where: {
           payment: {

@@ -4,6 +4,7 @@ import cors from 'cors';
 import authRoutes from './routes/auth.js';
 import paymentRoutes from './routes/payment.js';
 import tokenRoutes from './routes/token.js';
+import referralRoutes from './routes/referral.js';
 import pkg from '@prisma/client';
 
 const { PrismaClient } = pkg;
@@ -17,7 +18,9 @@ app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
 }));
+
 
 app.use(express.json());
 
@@ -25,6 +28,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/token', tokenRoutes);
+app.use('/api/referral', referralRoutes);
 
 // Health check
 app.get('/', (req, res) => res.send('API Running'));

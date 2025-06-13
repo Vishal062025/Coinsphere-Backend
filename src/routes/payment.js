@@ -1,5 +1,5 @@
 import express from 'express';
-import { validatePayment } from '../middleware/validatePayment.js';
+import { validatePayment } from '../middleware/validator.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 import {
   handleCreatePayment,

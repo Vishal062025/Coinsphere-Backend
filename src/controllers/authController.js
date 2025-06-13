@@ -1,7 +1,12 @@
+import { validateSignupInput } from '../middleware/validator.js';
 import { _registerUser, _loginUser } from '../services/authService.js';
 
 export const signup = async (req, res) => {
   try {
+        const valid = validateSignupInput(req.body);
+    if (!valid.valid) {
+      return res.status(400).json({ error: valid.error });
+    }
     const { statusCode, data, message, error } = await _registerUser(req.body);
     res.status(statusCode).json({ data, message, error });
   } catch (err) {

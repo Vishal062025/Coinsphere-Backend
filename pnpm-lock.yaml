@@ -23,6 +23,9 @@ importers:
       cors:
         specifier: ^2.8.5
         version: 2.8.5
+      date-fns:
+        specifier: ^4.1.0
+        version: 4.1.0
       dotenv:
         specifier: ^16.5.0
         version: 16.5.0
@@ -225,6 +228,9 @@ packages:
   cron-parser@4.9.0:
     resolution: {integrity: sha512-p0SaNjrHOnQeR8/VnfGbmg9te2kfyYSQ7Sc/j/6DtPL3JQvKxmjO9TSjNFpujqV3vEYYBvNNvXSxzyksBWAx1Q==}
     engines: {node: '>=12.0.0'}
+
+  date-fns@4.1.0:
+    resolution: {integrity: sha512-Ukq0owbQXxa/U3EGtsdVBkR1w7KOQ5gIBqdH2hkvknzZPYvBxb/aa6E8L7tmjFtkwZBu3UXBbjIgPo/Ez4xaNg==}
 
   debug@4.4.1:
     resolution: {integrity: sha512-KcKCqiftBJcZr++7ykoDIEwSa3XWowTfNPo92BYxjXiyYEVrUQh2aLyhxBCwww+heortUFxEJYcRzosstTEBYQ==}
@@ -950,6 +956,8 @@ snapshots:
     dependencies:
       luxon: 3.6.1
 
+  date-fns@4.1.0: {}
+
   debug@4.4.1(supports-color@5.5.0):
     dependencies:
       ms: 2.1.3
@@ -1016,19 +1024,24 @@ snapshots:
   express-auth-app@file:(prisma@6.8.2):
     dependencies:
       '@prisma/client': 6.8.2(prisma@6.8.2)
+      axios: 1.9.0
       bcrypt: 6.0.0
       bullmq: 5.53.1
       cors: 2.8.5
       dotenv: 16.5.0
+      ethers: 6.14.3
       express: 5.1.0
       ioredis: 5.6.1
       jsonwebtoken: 9.0.2
       pg: 8.16.0
     transitivePeerDependencies:
+      - bufferutil
+      - debug
       - pg-native
       - prisma
       - supports-color
       - typescript
+      - utf-8-validate
 
   express@5.1.0:
     dependencies:
