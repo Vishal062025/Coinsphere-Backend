@@ -88,11 +88,8 @@ new Worker(
   "payment-verification",
   async (job) => {
     const { paymentId, transactionHash } = job.data;
-    console.log(job.data);
     try {
-      console.log("👷 Worker started for job:", job.id);
       const status = await simulateStatusCheck(transactionHash);
-      console.log("🔍 Transaction status:", status);
 
       const payment = await prisma.payment.findUnique({
         where: { id: paymentId },
@@ -159,7 +156,6 @@ new Worker(
             ethers.parseUnits(cpsAmount.toFixed(18), 18),
             BigInt(DIVIDUNT)
           );
-          console.log("🚀 Token TX:", tokenTx.hash);
           await tokenTx.wait();
         } catch (err) {
           throw `❌ Token distribution failed: ${err.message}`;
@@ -184,7 +180,6 @@ new Worker(
               },
             }),
           ]);
-          console.log({ job });
           if (job.data.reward?.userId) {
             await prisma.reward.create({
               data: {
@@ -196,10 +191,8 @@ new Worker(
                 isCompleted: true, // Mark as completed since tokens are distributed
               },
             });
-            console.log("🎁 Referral reward saved.");
           }
 
-          console.log("✅ DB update complete.");
         } catch (err) {
           throw `❌ DB update failed: ${err.message}`;
         }
@@ -211,12 +204,8 @@ new Worker(
             isActive: false,
           },
         });
-        console.log(`🗑️ Payment ${paymentId} marked as cancelled.`);
       } else {
         const attempt = job.data.attempt || 1;
-        console.log(
-          `⏳ Retrying transaction ${transactionHash}, Attempt #${attempt}`
-        );
         await paymentQueue.add(
           "payment-verification",
           { paymentId, transactionHash, attempt: attempt + 1 },
