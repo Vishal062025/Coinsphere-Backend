@@ -13,12 +13,11 @@ dotenv.config();
 const app = express();
 const prisma = new PrismaClient();
 
-// CORS middleware
+
 app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true,
+  origin: '*', // allows all origins
+  methods: '*', // allows all HTTP methods
+  allowedHeaders: ['Content-Type', 'Authorization'], // allows specific headers
 }));
 
 
