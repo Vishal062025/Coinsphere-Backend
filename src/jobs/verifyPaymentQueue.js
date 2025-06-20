@@ -13,10 +13,10 @@ dotenv.config();
 
 const prisma = new PrismaClient();
 const connection = new IORedis({
-  host: "redis-16449.c241.us-east-1-4.ec2.redns.redis-cloud.com",
-  port: 16449,
+  host: "redis-14475.c263.us-east-1-2.ec2.redns.redis-cloud.com",
+  port: 14475,
   username: "default",
-  password: "wSxMZ1JG9YNirweE3fuGsd7lrYqiiGua",
+  password: "C8Bu0IqQXAVcCHShsgaiKazWbJl42mKh",
   maxRetriesPerRequest: null,
 });
 

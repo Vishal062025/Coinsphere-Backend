@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon src/index.js"
@@ -24,7 +25,16 @@
     "express-auth-app": "file:",
     "ioredis": "^5.6.1",
     "jsonwebtoken": "^9.0.2",
-    "pg": "^8.16.0"
+    "jws": "^4.0.0",
+    "lodash.includes": "^4.3.0",
+    "lodash.isboolean": "^3.0.3",
+    "lodash.isinteger": "^4.0.4",
+    "lodash.isnumber": "^3.0.3",
+    "lodash.once": "^4.1.1",
+    "pg": "^8.16.0",
+    "pstree.remy": "^1.1.8",
+    "simple-update-notifier": "^2.0.0",
+    "undefsafe": "^2.0.5"
   },
   "devDependencies": {
     "nodemon": "^3.1.10",
