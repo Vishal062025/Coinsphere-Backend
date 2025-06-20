@@ -13,12 +13,12 @@ dotenv.config();
 
 const prisma = new PrismaClient();
 const connection = new IORedis({
-  host: "redis-14475.c263.us-east-1-2.ec2.redns.redis-cloud.com",
-  port: 14475,
-  username: "default",
-  password: "C8Bu0IqQXAVcCHShsgaiKazWbJl42mKh",
+  host: "127.0.0.1",
+  port: 6379,
   maxRetriesPerRequest: null,
+  enableReadyCheck: false 
 });
+
 
 export const paymentQueue = new Queue("payment-verification", { connection });
 
