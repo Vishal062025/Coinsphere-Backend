@@ -1,7 +1,7 @@
 import { v4 as uuidV4 } from 'uuid'; // Make sure this is imported at the top
 import pkg from '@prisma/client';
 const { PrismaClient } = pkg;
-import { paymentQueue } from '../jobs/verifyPaymentQueue.js';
+// import { paymentQueue } from '../jobs/verifyPaymentQueue.js';
 
 const prisma = new PrismaClient();
 
@@ -96,14 +96,14 @@ export const _executePaymentService = async (body, userId) => {
     });
 
     // Step 5: Add job to verification queue
-    await paymentQueue.add("verify", {
-      paymentId,
-      transactionHash,
-      reward: {
-        userId: userData?.referredById ?? null, // Person receiving the reward
-        rewardById: userId,                     // Person who initiated the payment
-      },
-    });
+    // await paymentQueue.add("verify", {
+    //   paymentId,
+    //   transactionHash,
+    //   reward: {
+    //     userId: userData?.referredById ?? null, // Person receiving the reward
+    //     rewardById: userId,                     // Person who initiated the payment
+    //   },
+    // });
 
     return {
       statusCode: 201,
