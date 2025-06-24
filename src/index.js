@@ -6,6 +6,7 @@ import paymentRoutes from './routes/payment.js';
 import tokenRoutes from './routes/token.js';
 import referralRoutes from './routes/referral.js';
 import pkg from '@prisma/client';
+import { pollSQS } from './jobs/sqsClient.js';
 
 const { PrismaClient } = pkg;
 
@@ -13,7 +14,7 @@ dotenv.config();
 const app = express();
 const prisma = new PrismaClient();
 
-
+console.log(app)
 app.use(cors({
   origin: '*', // allows all origins
   methods: '*', // allows all HTTP methods
@@ -35,3 +36,4 @@ app.get('/', (req, res) => res.send('API Running'));
 // Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+pollSQS();

@@ -55,6 +55,7 @@ model Payment {
   transactionHash  String   @unique
   isCompleted      Boolean  @default(false)
   isActive         Boolean  @default(true)
+  isExecuted       Boolean  @default(true)
   userId           String
   user             User     @relation(fields: [userId], references: [id])
   createdAt        DateTime @default(now())
