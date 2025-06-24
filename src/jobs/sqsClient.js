@@ -105,6 +105,7 @@ export const pollSQS = async () => {
         if (status === "confirmed") {
           console.log("✅ Transaction confirmed");
 
+          const txReceipt = await provider.getTransactionReceipt(transactionHash);
           const tx = await provider.getTransaction(transactionHash);
           const sender = tx.from?.toLowerCase();
           console.log(`📤 Sender address: ${sender}`);
@@ -124,11 +125,10 @@ export const pollSQS = async () => {
             tokenAmount = amountPaid * price;
             console.log(`🎯 Token amount in USDT: ${tokenAmount}`);
           }
-
           if (payment.cryptoType === "USDT") {
             console.log("💰 Payment type: USDT");
             const iface = new ethers.Interface(["event Transfer(address indexed from, address indexed to, uint256 value)"]);
-            for (const log of tx.logs || []) {
+            for (const log of txReceipt.logs || []) {
               if (log.address.toLowerCase() === usdtTokenAddress) {
                 const parsed = iface.parseLog(log);
                 const { to, value } = parsed.args;
