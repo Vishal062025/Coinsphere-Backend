@@ -1,8 +1,8 @@
-import { v4 as uuidV4 } from 'uuid'; // Make sure this is imported at the top
+import { v4 as uuidV4 } from 'uuid';
 import pkg from '@prisma/client';
-const { PrismaClient } = pkg;
-import { paymentQueue } from '../jobs/verifyPaymentQueue.js';
+import { sendMessageCommand } from '../jobs/sqsClient.js'; // This wraps AWS SDK
 
+const { PrismaClient } = pkg;
 const prisma = new PrismaClient();
 
 /**
@@ -12,7 +12,7 @@ export const _createPaymentService = async (body, userId) => {
   const { amount, cryptoType } = body;
 
   try {
-    const transactionHash = uuidV4(); // Generate unique transaction hash
+    const transactionHash = uuidV4();
 
     const payment = await prisma.payment.create({
       data: {
@@ -31,6 +31,7 @@ export const _createPaymentService = async (body, userId) => {
       error: null,
     };
   } catch (err) {
+    console.log(err);
     return {
       statusCode: 500,
       data: null,
@@ -47,11 +48,7 @@ export const _executePaymentService = async (body, userId) => {
   const { transactionHash, paymentId } = body;
 
   try {
-    // Step 1: Check if transactionHash already exists
-    const exists = await prisma.payment.findUnique({
-      where: { transactionHash },
-    });
-
+    const exists = await prisma.payment.findUnique({ where: { transactionHash } });
     if (exists) {
       return {
         statusCode: 400,
@@ -61,11 +58,7 @@ export const _executePaymentService = async (body, userId) => {
       };
     }
 
-    // Step 2: Check if paymentId is valid
-    const paymentRecord = await prisma.payment.findUnique({
-      where: { id: paymentId },
-    });
-
+    const paymentRecord = await prisma.payment.findUnique({ where: { id: paymentId } });
     if (!paymentRecord) {
       return {
         statusCode: 400,
@@ -75,35 +68,35 @@ export const _executePaymentService = async (body, userId) => {
       };
     }
 
-    if(paymentRecord?.isExecuted){
-        return {
+    if (paymentRecord?.isExecuted) {
+      return {
         statusCode: 400,
         data: null,
         message: "Payment is already in queue process or completed",
         error: true,
       };
     }
-    // Step 3: Update isExecuted to true
+
     await prisma.payment.update({
       where: { id: paymentId },
       data: { isExecuted: true, transactionHash },
     });
 
-    // Step 4: Fetch user data (e.g., referral)
     const userData = await prisma.user.findUnique({
       where: { id: userId },
       select: { referredById: true },
     });
 
-    // Step 5: Add job to verification queue
-    await paymentQueue.add("verify", {
+    const sqsPayload = {
       paymentId,
       transactionHash,
       reward: {
-        userId: userData?.referredById ?? null, // Person receiving the reward
-        rewardById: userId,                     // Person who initiated the payment
+        userId: userData?.referredById ?? null,
+        rewardById: userId,
       },
-    });
+    };
+
+    await sendMessageCommand(sqsPayload);
 
     return {
       statusCode: 201,
@@ -121,17 +114,14 @@ export const _executePaymentService = async (body, userId) => {
   }
 };
 
-
 /**
  * Get all transactions for a user
  */
 export const _getUserTransactions = async (userId) => {
   try {
     const transactions = await prisma.payment.findMany({
-      where: { userId }, // userId is UUID string
-      include: {
-        token: true,
-      },
+      where: { userId },
+      include: { token: true },
       orderBy: { createdAt: "desc" },
     });
 
@@ -158,12 +148,10 @@ export const _getTransactionDetail = async (userId, id) => {
   try {
     const transaction = await prisma.payment.findFirst({
       where: {
-        id: id, // id is UUID string
-        userId: userId,
+        id,
+        userId,
       },
-      include: {
-        token: true,
-      },
+      include: { token: true },
     });
 
     if (!transaction || transaction.userId !== userId) {
