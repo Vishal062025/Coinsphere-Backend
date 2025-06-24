@@ -219,7 +219,7 @@ export const _forgotPassword = async (req) => {
     expiresIn: "1d",
   });
 
-  const domain = `${origin}?token=${token}`;
+  const domain = `${origin}/resetPassword/?token=${token}`;
 
   const emailTransport = await sendResetEmail(
     userExist.email,
