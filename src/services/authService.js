@@ -71,7 +71,7 @@ export const _registerUser = async (req) => {
 
   // 6. Send verification email
   const origin = req.get?.("Origin") || process.env.FRONTEND_URL;
-  const verifyUrl = `${origin}/verify-email?token=${token}`;
+  const verifyUrl = `${origin}/verifyEmail/?token=${token}`;
   const emailTransport = await sendSignUpEmail(
     email,
     firstName || "User",
@@ -79,10 +79,12 @@ export const _registerUser = async (req) => {
   );
 
   if (emailTransport.success) {
-    console.log(tempUserStore, 223);
+    console.log("User added to temp store:", tempUserStore);
+
     return {
       statusCode: 200,
-      message: "Email Verification link sent successfully",
+      message:
+        "You're almost there! We've sent a verification link to your email.",
       data: email,
       error: null,
     };
@@ -98,20 +100,20 @@ export const _registerUser = async (req) => {
 
 // === Verify and Create User from Map ===
 export const _verifyAndCreateUser = async (req) => {
-  const {token}=req.body;
- if (!token) {
-  return {
-    statusCode: 400,
-    message: "Missing or invalid verification token",
-    data: null,
-    error: "Token not provided",
-  };
-}
+  const { token } = req.body;
+  if (!token) {
+    return {
+      statusCode: 400,
+      message: "Missing or invalid verification token",
+      data: null,
+      error: "Token not provided",
+    };
+  }
 
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
-  console.log(decoded,254)
+  console.log(decoded, 254);
   const userData = tempUserStore.get(token);
-console.log(userData)
+  console.log(userData);
   if (!userData || userData.email !== decoded.email) {
     return {
       statusCode: 400,
