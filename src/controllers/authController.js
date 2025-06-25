@@ -3,7 +3,8 @@ import {
   _registerUser,
   _loginUser,
   _forgotPassword,
-  _resetPassword
+  _resetPassword,
+  _verifyAndCreateUser
 } from "../services/authService.js";
 
 export const signup = async (req, res) => {
@@ -12,7 +13,16 @@ export const signup = async (req, res) => {
     if (!valid.valid) {
       return res.status(400).json({ error: valid.error });
     }
-    const { statusCode, data, message, error } = await _registerUser(req.body);
+    const { statusCode, data, message, error } = await _registerUser(req);
+    res.status(statusCode).json({ data, message, error });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const verifyUser = async (req, res) => {
+  try {
+    const { statusCode, data, message, error } = await _verifyAndCreateUser(req);
     res.status(statusCode).json({ data, message, error });
   } catch (err) {
     res.status(500).json({ error: err.message });

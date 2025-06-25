@@ -27,7 +27,7 @@ export const validateExecutePayment = (req, res, next) => {
 
 export const validateSignupInput = (data) => {
   const requiredFields = [
-    'email', 'password', 'confirmPassword',
+    'email', 'password',
     'firstName', 'lastName', 'dob', 'address',
     'city', 'state', 'zipCode', 'country'
   ];
@@ -38,9 +38,9 @@ export const validateSignupInput = (data) => {
     }
   }
 
-  if (data.password !== data.confirmPassword) {
-    return { valid: false, error: 'Passwords do not match' };
-  }
+  // if (data.password !== data.confirmPassword) {
+  //   return { valid: false, error: 'Passwords do not match' };
+  // }
 
  const dobString = data.dob; // e.g., "06-12-2025"
 const parsedDob = parse(dobString, 'MM-dd-yyyy', new Date());
