@@ -8,85 +8,98 @@ datasource db {
 }
 
 model User {
-  id             String       @id @default(uuid())
-  email          String       @unique
-  password       String
-  firstName      String
-  lastName       String
-  dob            String
-  address        String
-  city           String
-  state          String
-  zipCode        String
-  country        String
-  createdAt      DateTime     @default(now())
+  id                String   @id @default(uuid())
+  email             String   @unique
+  password          String
+  firstName         String
+  lastName          String
+  userWalletAddress String?  @unique
+  IsAdmin           Boolean  @default(false)
+  // isActive          Boolean  @default(true)  // Optional: can be used to deactivate users without deleting them
+  dob               String
+  address           String
+  city              String
+  state             String
+  zipCode           String
+  country           String
+  createdAt         DateTime @default(now())
 
-  referredById   String?
-  referredBy     User?        @relation("Referrals", fields: [referredById], references: [id])
-  referrals      User[]       @relation("Referrals")
+  referredById String?
+  referredBy   User?   @relation("Referrals", fields: [referredById], references: [id])
+  referrals    User[]  @relation("Referrals")
 
   rootReferralId String?
-  referralCount  Int          @default(0)      // Direct referrals
-  teamSize       Int          @default(0)      // Total team under this user
+  referralCount  Int     @default(0) // Direct referrals
+  teamSize       Int     @default(0) // Total team under this user
 
-  payments       Payment[]
-  rewards        Reward[]
-  rewardData     RewardData?
+  payments   Payment[]
+  rewards    Reward[]
+  rewardData RewardData?
 
   referralTreeRoots    ReferralTree[] @relation("RootRef")
   referralTreeChildren ReferralTree[] @relation("ChildRef")
+
+  adminPayments Payment[] @relation("AdminPayments")
 }
 
 model ReferralTree {
   id      String @id @default(uuid())
   rootId  String
   childId String
-  depth   Int       // 1 for direct, 2 for indirect...
-  path    String    // Optional: can be used to trace lineage
+  depth   Int // 1 for direct, 2 for indirect...
+  path    String // Optional: can be used to trace lineage
 
-  root    User   @relation("RootRef", fields: [rootId], references: [id])
-  child   User   @relation("ChildRef", fields: [childId], references: [id])
+  root  User @relation("RootRef", fields: [rootId], references: [id])
+  child User @relation("ChildRef", fields: [childId], references: [id])
 }
 
 model Payment {
-  id               String   @id @default(uuid())
-  amount           Float
-  cryptoType       String
-  transactionHash  String   @unique
-  isCompleted      Boolean  @default(false)
-  isActive         Boolean  @default(true)
-  isExecuted       Boolean  @default(true)
-  userId           String
-  user             User     @relation(fields: [userId], references: [id])
-  createdAt        DateTime @default(now())
+  id              String   @id @default(uuid())
+  amount          Float
+  cryptoType      String
+  transactionHash String   @unique
+  isCompleted     Boolean  @default(false)
+  isActive        Boolean  @default(true)
+  isExecuted      Boolean  @default(true)
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  createdAt       DateTime @default(now())
 
-  token            Token?
+  token             Token?
+// admin assignment specific fields
+  isAdminPayment Boolean @default(false) // Indicates if this payment is assigned by an admin
+  adminId          String? // Optional: Admin who assigned this payment 
+  admin            User?   @relation("AdminPayments", fields: [adminId], references: [id])
+  currencyType      String  @default("USDT") // Default currency type, for token Assignment
+  CSPTokenAmount    Float? 
+  dividunt          Float? 
+  currentStagePrice Float? 
 }
 
 model Token {
-  id           String  @id @default(uuid())
-  paymentId    String  @unique
+  id           String @id @default(uuid())
+  paymentId    String @unique
   token        Float
-  ercHash      String  @unique
+  ercHash      String @unique
   currentPrice Float
 
-  payment      Payment @relation(fields: [paymentId], references: [id])
+  payment Payment @relation(fields: [paymentId], references: [id])
 }
 
 model Reward {
-  id                   String  @id @default(uuid())
-  userId               String
-  rewardById           String
-  referralPurchaseCSP  Float
-  rewardCSP            Float
-  isTeamReward         Boolean @default(false)
-isCompleted           Boolean @default(false)
-  user                 User    @relation(fields: [userId], references: [id])
+  id                  String  @id @default(uuid())
+  userId              String
+  rewardById          String
+  referralPurchaseCSP Float
+  rewardCSP           Float
+  isTeamReward        Boolean @default(false)
+  isCompleted         Boolean @default(false)
+  user                User    @relation(fields: [userId], references: [id])
 }
 
 model RewardData {
-  id         String  @id @default(uuid())
-  userId     String  @unique
+  id         String @id @default(uuid())
+  userId     String @unique
   claimedCSP Float
-  user       User    @relation(fields: [userId], references: [id])
+  user       User   @relation(fields: [userId], references: [id])
 }

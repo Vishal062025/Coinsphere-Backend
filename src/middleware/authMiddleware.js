@@ -19,3 +19,25 @@ export const authMiddleware = (req, res, next) => {
     return res.status(401).json({ message: 'Invalid token' });
   }
 };
+
+
+export const adminMiddleware = async (req, res, next) => {
+  try {
+    // Verify user is admin
+    const admin = await prisma.user.findUnique({
+      where: { 
+        id: req.user.id, 
+        IsAdmin: true 
+      },
+      select: { id: true }
+    });
+    
+    if (!admin) throw new Error('Admin access required');
+    
+    // Attach verified admin ID to request
+    req.adminId = admin.id;
+    next();
+  } catch (error) {
+    return res.status(403).json({ message: 'Admin privileges required' });
+  }
+};

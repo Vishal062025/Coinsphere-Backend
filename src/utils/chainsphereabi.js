@@ -1,0 +1,1 @@
+const CHAINSPHERE_ABI = [];
