@@ -3,7 +3,7 @@ import { getContractInstance } from '../utils/contractUtils.js';
 const { PrismaClient, PointType, PaymentMethod } = pkg;
 const prisma = new PrismaClient();
 
-export const assignTokenByAdmin = async (adminId, payload) => {
+export const assignTokenByAdmin = async (payload) => {
   const { userEmail, tokenAmount, userWalletAddress } = payload;
 
   // Validate inputs
@@ -16,13 +16,9 @@ export const assignTokenByAdmin = async (adminId, payload) => {
   const DIVIDUNT = parseFloat(process.env.DIVIDUNT || '25');
   const usdtEquivalent = tokenAmount * CURRENT_STAGE_PRICE;
 
-  // Verify admin exists (extra safety check)
-  const admin = await prisma.user.findUnique({
-    where: { id: adminId,
-      role: {in: ['ADMIN', 'SUPERADMIN']}
-    }, 
-  });
-  if (!admin) throw new Error('Admin authorization failed');
+  // if (isNaN(usdtEquivalent) || usdtEquivalent <= 0) {
+  //   throw new Error('Invalid token amount');
+  // }
 
   // Find recipient user
   const recipient = await prisma.user.findUnique({ 
@@ -109,7 +105,7 @@ export const assignTokenByAdmin = async (adminId, payload) => {
       }
     });
     
-    console.error('Blockchain assignment failed:', error);
+    console.error('Blockchain assignment failed line no 108:', error);
     throw new Error(`Token assignment failed: ${error.message}`);
   }
 };

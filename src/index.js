@@ -8,6 +8,7 @@ import adminRoutes from "./routes/admin.js"
 import referralRoutes from './routes/referral.js';
 import blockchainRoutes from './routes/blockchainRoutes.js'
 import pkg from '@prisma/client';
+import morgan from 'morgan';
 import { pollSQS } from './jobs/sqsClient.js';
 
 const { PrismaClient } = pkg;
@@ -25,6 +26,7 @@ app.use(cors({
 
 
 app.use(express.json());
+app.use(morgan('dev'));
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -33,6 +35,7 @@ app.use('/api/token', tokenRoutes);
 app.use('/api/referral', referralRoutes);
 app.use('/api/blockchain', blockchainRoutes);
 app.use('/api/admin',adminRoutes)
+
 
 // Health check
 app.get('/', (req, res) => res.send('API Running'));
