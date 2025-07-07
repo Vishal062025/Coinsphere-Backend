@@ -4,6 +4,7 @@ import cors from 'cors';
 import authRoutes from './routes/auth.js';
 import paymentRoutes from './routes/payment.js';
 import tokenRoutes from './routes/token.js';
+import adminRoutes from "./routes/admin.js"
 import referralRoutes from './routes/referral.js';
 import blockchainRoutes from './routes/blockchainRoutes.js'
 import pkg from '@prisma/client';
@@ -31,6 +32,7 @@ app.use('/api/payment', paymentRoutes);
 app.use('/api/token', tokenRoutes);
 app.use('/api/referral', referralRoutes);
 app.use('/api/blockchain', blockchainRoutes);
+app.use('/api/admin',adminRoutes)
 
 // Health check
 app.get('/', (req, res) => res.send('API Running'));
