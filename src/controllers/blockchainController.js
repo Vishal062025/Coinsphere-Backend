@@ -4,7 +4,7 @@ import { assignTokenByAdmin } from '../services/blockchainService.js';
 export const assignTokens = async (req, res) => {
   try {
     // Get adminId from middleware-authenticated request
-    // const adminId=req.userId;
+    const adminId=req.user.id;
 
     const result = await assignTokenByAdmin( req.body);
     res.status(200).json(result);
