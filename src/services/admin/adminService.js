@@ -31,7 +31,7 @@ export const _getAllUsersForAdmin = async () => {
       .filter((r) => r.isTeamReward)
       .reduce((acc, r) => acc + r.rewardCSP, 0);
 
-    // User Tag Logic
+   
     let userTag = "Early Investor";
     if (totalTokens > 25000 && totalTokens < 50000) {
       userTag = "Core Investor";
@@ -43,8 +43,8 @@ export const _getAllUsersForAdmin = async () => {
       email: user.email,
       totalTokens: parseFloat(totalTokens.toFixed(2)),
       totalValueUSD: parseFloat(totalValueUSD.toFixed(2)),
-      referralId: user.referredById || null, // updated line
-      userTag, // updated logic
+      referralId: user.referredById || null, 
+      userTag, 
       directReferralCount: user.referralCount,
       totalTeamSize: user.teamSize,
       totalTeamEarning: parseFloat(totalTeamEarning.toFixed(2)),
