@@ -1,5 +1,5 @@
 import { ethers } from 'ethers';
-import {CHAINSPHERE_ABI} from './utils/chainsphereabi.js';
+import {CHAINSPHERE_ABI} from './chainsphereabi.js';
 const PROVIDER_URL = process.env.BSC_RPC_URL;
 const CONTRACT_ADDRESS = process.env.CPS_ICO_TOKEN_ADDRESS;
 const PRIVATE_KEY = process.env.OWNER_PRIVATE_KEY;

@@ -1,4 +1,4 @@
-const CHAINSPHERE_ABI = [
+export const CHAINSPHERE_ABI = [
     {
       "inputs": [
         {

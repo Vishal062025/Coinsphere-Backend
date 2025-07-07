@@ -11,8 +11,11 @@ export const authMiddleware = (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Ensure req.user object exists
-    req.user = { id: decoded.userId };
+    // Set both userId and role in req.user
+    req.user = {
+      id: decoded.userId,
+      role: decoded.role,
+    };
 
     next();
   } catch (err) {
@@ -20,24 +23,12 @@ export const authMiddleware = (req, res, next) => {
   }
 };
 
-
-export const adminMiddleware = async (req, res, next) => {
-  try {
-    // Verify user is admin
-    const admin = await prisma.user.findUnique({
-      where: { 
-        id: req.user.id, 
-        IsAdmin: true 
-      },
-      select: { id: true }
-    });
-    
-    if (!admin) throw new Error('Admin access required');
-    
-    // Attach verified admin ID to request
-    req.adminId = admin.id;
+export const authorizeRoles = (...allowedRoles) => {
+  console.log(allowedRoles)
+  return (req, res, next) => {
+    if (!req.user || !allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({ message: 'Forbidden: Access denied' });
+    }
     next();
-  } catch (error) {
-    return res.status(403).json({ message: 'Admin privileges required' });
-  }
+  };
 };

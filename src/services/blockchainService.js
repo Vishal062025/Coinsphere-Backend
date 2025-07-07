@@ -3,12 +3,6 @@ import { getContractInstance } from '../utils/contractUtils.js';
 const { PrismaClient, PointType, PaymentMethod } = pkg;
 const prisma = new PrismaClient();
 
-
-
-
-
-
-
 export const assignTokenByAdmin = async (adminId, payload) => {
   const { userEmail, tokenAmount, userWalletAddress } = payload;
 
