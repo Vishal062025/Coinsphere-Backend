@@ -23,6 +23,7 @@ export const handleExecutePayment = async (req, res) => {
 
 export const listTransactions = async (req, res) => {
     try {
+      console.log(req.user.id)
   const { statusCode, data, message, error } = await _getUserTransactions(req.user.id);
   res.status(statusCode).json({ data, message, error });
    } catch (err) {
