@@ -9,9 +9,11 @@ import referralRoutes from './routes/referral.js';
 import blockchainRoutes from './routes/blockchainRoutes.js'
 import pkg from '@prisma/client';
 import morgan from 'morgan';
-import { pollSQS } from './jobs/sqsClient.js';
+// import { pollSQS } from './jobs/sqsClient.js';
 
 const { PrismaClient } = pkg;
+
+const verboseSQSLogs = false; 
 
 dotenv.config();
 const app = express();
@@ -43,4 +45,4 @@ app.get('/', (req, res) => res.send('API Running'));
 // Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-pollSQS();
+// pollSQS(verboseSQSLogs);
