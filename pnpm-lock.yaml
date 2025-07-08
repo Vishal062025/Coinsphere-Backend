@@ -35,6 +35,9 @@ importers:
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
+      dayjs:
+        specifier: ^1.11.13
+        version: 1.11.13
       dotenv:
         specifier: ^16.5.0
         version: 16.5.0
@@ -734,6 +737,9 @@ packages:
 
   date-fns@4.1.0:
     resolution: {integrity: sha512-Ukq0owbQXxa/U3EGtsdVBkR1w7KOQ5gIBqdH2hkvknzZPYvBxb/aa6E8L7tmjFtkwZBu3UXBbjIgPo/Ez4xaNg==}
+
+  dayjs@1.11.13:
+    resolution: {integrity: sha512-oaMBel6gjolK862uaPQOVTA7q3TZhuSvuMQAAglQDOWYO9A91IrAOUJEyKVlqJlHE0vq5p5UXxzdPfMH/x6xNg==}
 
   debug@2.6.9:
     resolution: {integrity: sha512-bC7ElrdJaJnPbAP+1EotYvqZsb3ecl5wi6Bfi6BJTUcNowp6cvspg0jXznRTKDjm/E7AdgFBVeAPVMNcKGsHMA==}
@@ -2712,6 +2718,8 @@ snapshots:
 
   date-fns@4.1.0: {}
 
+  dayjs@1.11.13: {}
+
   debug@2.6.9:
     dependencies:
       ms: 2.0.0
@@ -2802,6 +2810,7 @@ snapshots:
       bullmq: 5.53.1
       cors: 2.8.5
       date-fns: 4.1.0
+      dayjs: 1.11.13
       dotenv: 16.5.0
       ejs: 3.1.10
       ethers: 6.14.3
@@ -2815,6 +2824,7 @@ snapshots:
       lodash.isinteger: 4.0.4
       lodash.isnumber: 3.0.3
       lodash.once: 4.1.1
+      morgan: 1.10.0
       pg: 8.16.0
       pstree.remy: 1.1.8
       simple-update-notifier: 2.0.0

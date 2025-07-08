@@ -13,7 +13,7 @@ model User {
   password  String
   firstName String
   lastName  String
-  role      Role?     @default(USER)
+  role      Role?    @default(USER)
   dob       String
   address   String
   city      String
@@ -30,11 +30,10 @@ model User {
   referralCount  Int     @default(0) // Direct referrals
   teamSize       Int     @default(0) // Total team under this user
 
-  payments   Payment[]
-  rewards    Reward[]
-  rewardData RewardData?
- claimRewards ClaimReward[] @relation("UserClaimRewards")
-
+  payments     Payment[]
+  rewards      Reward[]
+  rewardData   RewardData?
+  claimRewards ClaimReward[] @relation("UserClaimRewards")
 
   referralTreeRoots    ReferralTree[] @relation("RootRef")
   referralTreeChildren ReferralTree[] @relation("ChildRef")
@@ -57,17 +56,17 @@ model ReferralTree {
   child User @relation("ChildRef", fields: [childId], references: [id])
 }
 
-model Payment {// only buy and asign 
-  id              String   @id @default(uuid())
-  amount          Float
-  cryptoType      String
-  transactionHash String   @unique
-  isCompleted     Boolean  @default(false)
-  isActive        Boolean  @default(true)
-  isExecuted      Boolean  @default(true)
-  userId          String
-  user            User     @relation(fields: [userId], references: [id])
-  createdAt       DateTime @default(now())
+model Payment {
+  id                String   @id @default(uuid())
+  amount            Float
+  cryptoType        String
+  transactionHash   String   @unique
+  isCompleted       Boolean  @default(false)
+  isActive          Boolean  @default(true)
+  isExecuted        Boolean  @default(true)
+  userId            String
+  user              User     @relation(fields: [userId], references: [id])
+  createdAt         DateTime @default(now())
   token             Token?
   userWalletAddress String?
 }
@@ -91,9 +90,11 @@ model Reward {
   isTeamReward        Boolean @default(false)
   isCompleted         Boolean @default(false)
   user                User    @relation(fields: [userId], references: [id])
+  // claimId           String? // suggested to link to ClaimReward
+  // claimedAt         DateTime? // suggested to link to ClaimReward
 }
 
-model RewardData { // claimed CSP (For each user)
+model RewardData {
   id         String @id @default(uuid())
   userId     String @unique
   claimedCSP Float
@@ -101,16 +102,15 @@ model RewardData { // claimed CSP (For each user)
 }
 
 model ClaimReward {
-  id                  String      @id @default(uuid())
-  userId              String
-  rewardCSP           Float
-  userWalletAddress   String
-  createdAt          DateTime @default(now())
-  status              ClaimStatus @default(pending)
-  user                User        @relation("UserClaimRewards", fields: [userId], references: [id])
-  rewardHistory       ClaimedTokenRewardHistory?
+  id                String                     @id @default(uuid())
+  userId            String
+  rewardCSP         Float
+  userWalletAddress String
+  createdAt         DateTime                   @default(now())
+  status            ClaimStatus                @default(pending)
+  user              User                       @relation("UserClaimRewards", fields: [userId], references: [id])
+  rewardHistory     ClaimedTokenRewardHistory?
 }
-
 
 enum ClaimStatus {
   pending
@@ -119,14 +119,14 @@ enum ClaimStatus {
 }
 
 model ClaimedTokenRewardHistory {
-  id                 String   @id @default(uuid())
-  claimRewardId      String   @unique 
-  txhash            String
-  usdtAmount         Float
-  usdtTxHash         String   @unique
-  cspAmount          Float
-  cspTxHash          String   @unique
-  createdAt          DateTime @default(now())
+  id            String   @id @default(uuid())
+  claimRewardId String   @unique
+  txhash        String
+  usdtAmount    Float
+  usdtTxHash    String   @unique
+  cspAmount     Float
+  cspTxHash     String   @unique
+  createdAt     DateTime @default(now())
 
-  claimReward        ClaimReward @relation(fields: [claimRewardId], references: [id])
+  claimReward ClaimReward @relation(fields: [claimRewardId], references: [id])
 }
