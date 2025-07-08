@@ -7,6 +7,7 @@ import tokenRoutes from './routes/token.js';
 import adminRoutes from "./routes/admin.js"
 import referralRoutes from './routes/referral.js';
 import blockchainRoutes from './routes/blockchainRoutes.js'
+import userRoutes from './routes/user.js'
 import pkg from '@prisma/client';
 import { pollSQS } from './jobs/sqsClient.js';
 
@@ -32,7 +33,8 @@ app.use('/api/payment', paymentRoutes);
 app.use('/api/token', tokenRoutes);
 app.use('/api/referral', referralRoutes);
 app.use('/api/blockchain', blockchainRoutes);
-app.use('/api/admin',adminRoutes)
+app.use('/api/admin',adminRoutes);
+app.use('/api/user',userRoutes);
 
 // Health check
 app.get('/', (req, res) => res.send('API Running'));

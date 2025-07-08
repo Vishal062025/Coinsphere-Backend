@@ -1,5 +1,4 @@
-import pkg from '@prisma/client';
-const { PrismaClient } = pkg;
+import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 export const _handleReferral = async (userId) => {
@@ -71,7 +70,7 @@ export const _handleReferral = async (userId) => {
 
     // Step 4: All rewards including team reward
     const totalRewardAggregate = await prisma.reward.aggregate({
-      where: { userId, isCompleted:true, },
+      where: { userId, isCompleted: true },
       _sum: {
         rewardCSP: true,
       },
@@ -108,15 +107,63 @@ export const _handleReferral = async (userId) => {
         totalTeamMembers,
         teamTotalPurchase: `$ ${teamTotalPurchase.toFixed(2)}`,
       },
-      message: 'User referral data',
+      message: "User referral data",
       error: null,
     };
   } catch (err) {
     return {
       statusCode: 500,
       data: null,
-      message: 'Failed to fetch referral data',
+      message: "Failed to fetch referral data",
       error: err.message,
     };
   }
+};
+
+// create claim Request
+export const _createClaimRewardRequest = async (req) => {
+  const userId = req.user.id;
+  const { rewardCSP, userWalletAddress } = req.body;
+  if (!userId || !rewardCSP || !userWalletAddress) {
+    return {
+      statusCode: 400,
+      message:
+        "Missing required fields: userId, rewardCSP, or userWalletAddress",
+      data: null,
+      error: "BadRequest",
+    };
+  }
+
+  const userExists = await prisma.user.findUnique({ where: { id: userId } });
+  if (!userExists) {
+    return {
+      statusCode: 404,
+      message: "User not found",
+      data: null,
+      error: "NotFound",
+    };
+  }
+console.log(userExists)
+  // Create a new ClaimReward Request
+  const claim = await prisma.claimReward.create({
+    data: {
+      userId,
+      rewardCSP,
+      userWalletAddress,
+      status: "pending",
+    },
+  });
+
+  return {
+    statusCode: 201,
+    message: "Claim reward request submitted successfully",
+    data: {
+      claimId: claim.id,
+      userId: claim.userId,
+      rewardCSP: claim.rewardCSP,
+      wallet: claim.userWalletAddress,
+      status: claim.status,
+    },
+    error: null,
+  };
 };

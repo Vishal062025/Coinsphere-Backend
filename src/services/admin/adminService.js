@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
-
+import dayjs from "dayjs";
 export const _getAllUsersForAdmin = async () => {
   const users = await prisma.user.findMany({
     include: {
@@ -58,4 +58,43 @@ export const _getAllUsersForAdmin = async () => {
     data: userList,
     error: null,
   };
+};
+
+
+
+
+export const _getAllClaimRequests = async () => {
+ 
+    const claims = await prisma.claimReward.findMany({
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    const formattedList = claims.map((claim) => ({
+      claimId: claim.id,
+      userId: claim.user.id,
+      userName: `${claim.user.firstName} ${claim.user.lastName}`.trim(),
+      walletAddress: claim.userWalletAddress,
+      status: claim.status,
+      rewardCSP: parseFloat(claim.rewardCSP.toFixed(2)),
+      requestDate: dayjs(claim.createdAt).format("DD MMM YYYY"), 
+    }));
+
+    return {
+      statusCode: 200,
+      message: "Claim reward requests fetched successfully",
+      data: formattedList,
+      error: null,
+    };
+
 };
