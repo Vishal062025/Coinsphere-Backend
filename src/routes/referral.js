@@ -8,4 +8,5 @@ const router = express.Router();
 
 router.get('/', authMiddleware, handleReferral);
 
+
 export default router;

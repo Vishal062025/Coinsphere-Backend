@@ -33,6 +33,8 @@ model User {
   payments   Payment[]
   rewards    Reward[]
   rewardData RewardData?
+ claimRewards ClaimReward[] @relation("UserClaimRewards")
+
 
   referralTreeRoots    ReferralTree[] @relation("RootRef")
   referralTreeChildren ReferralTree[] @relation("ChildRef")
@@ -55,7 +57,7 @@ model ReferralTree {
   child User @relation("ChildRef", fields: [childId], references: [id])
 }
 
-model Payment {
+model Payment {// only buy and asign 
   id              String   @id @default(uuid())
   amount          Float
   cryptoType      String
@@ -91,9 +93,40 @@ model Reward {
   user                User    @relation(fields: [userId], references: [id])
 }
 
-model RewardData {
+model RewardData { // claimed CSP (For each user)
   id         String @id @default(uuid())
   userId     String @unique
   claimedCSP Float
   user       User   @relation(fields: [userId], references: [id])
+}
+
+model ClaimReward {
+  id                  String      @id @default(uuid())
+  userId              String
+  rewardCSP           Float
+  userWalletAddress   String
+  createdAt          DateTime @default(now())
+  status              ClaimStatus @default(pending)
+  user                User        @relation("UserClaimRewards", fields: [userId], references: [id])
+  rewardHistory       ClaimedTokenRewardHistory?
+}
+
+
+enum ClaimStatus {
+  pending
+  approved
+  cancelled
+}
+
+model ClaimedTokenRewardHistory {
+  id                 String   @id @default(uuid())
+  claimRewardId      String   @unique 
+  txhash            String
+  usdtAmount         Float
+  usdtTxHash         String   @unique
+  cspAmount          Float
+  cspTxHash          String   @unique
+  createdAt          DateTime @default(now())
+
+  claimReward        ClaimReward @relation(fields: [claimRewardId], references: [id])
 }

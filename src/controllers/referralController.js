@@ -1,5 +1,5 @@
 
-import { _handleReferral } from '../services/referralService.js';
+import { _handleReferral,_createClaimRewardRequest } from '../services/referralService.js';
 
 export const handleReferral = async (req, res) => {
   try {
@@ -10,3 +10,11 @@ export const handleReferral = async (req, res) => {
   }
 };
 
+export const createClaimRewardRequest  = async (req, res) => {
+  try {
+    const { statusCode, data, message, error } = await _createClaimRewardRequest (req);
+    res.status(statusCode).json({ data, message, error });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
