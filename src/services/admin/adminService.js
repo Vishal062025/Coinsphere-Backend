@@ -98,3 +98,44 @@ export const _getAllClaimRequests = async () => {
     };
 
 };
+
+
+export const _getAllAssignedTokens = async () => {
+  const records = await prisma.assignTokenHistory.findMany({
+    include: {
+      admin: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+        },
+      },
+      recipient: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  const formattedList = records.map((item) => ({
+    id: item.id,
+    adminName: `${item.admin.firstName} ${item.admin.lastName}`.trim(),
+    userName: `${item.recipient.firstName} ${item.recipient.lastName}`.trim(),
+    tokenAmount: parseFloat(item.tokenAmount.toFixed(2)),
+    status: item.status,
+    date: dayjs(item.createdAt).format("DD MMM YYYY"),
+  }));
+
+  return {
+    statusCode: 200,
+    message: "Token assignment history fetched successfully",
+    data: formattedList,
+    error: null,
+  };
+};
