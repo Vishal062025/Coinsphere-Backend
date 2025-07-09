@@ -89,6 +89,7 @@ export const _registerUser = async (req) => {
       error: null,
     };
   } else {
+    
     return {
       statusCode: 500,
       message: "Failed to send email verification link",

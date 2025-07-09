@@ -2,42 +2,37 @@ import pkg from '@prisma/client';
 import { getContractInstance } from '../utils/contractUtils.js';
 const { PrismaClient, PointType, PaymentMethod } = pkg;
 const prisma = new PrismaClient();
+import { ethers } from 'ethers';
+    
+export const assignTokenByAdmin = async (req) => {
 
-export const assignTokenByAdmin = async (adminId, payload) => {
-  const { userEmail, tokenAmount, userWalletAddress } = payload;
-
-  // Validate inputs
+  const { userEmail, tokenAmount, userWalletAddress } = req.body;
   if (!userEmail || !tokenAmount || tokenAmount <= 0) {
     throw new Error('Invalid parameters: Provide valid email and positive token amount');
   }
 
-  // Get environment variables
   const CURRENT_STAGE_PRICE = parseFloat(process.env.CURRENT_STAGE_PRICE || '0.05');
   const DIVIDUNT = parseFloat(process.env.DIVIDUNT || '25');
   const usdtEquivalent = tokenAmount * CURRENT_STAGE_PRICE;
 
-  // Verify admin exists (extra safety check)
-  const admin = await prisma.user.findUnique({
-    where: { id: adminId,
-      role: {in: ['ADMIN', 'SUPERADMIN']}
-    }, 
-  });
-  if (!admin) throw new Error('Admin authorization failed');
-
-  // Find recipient user
-  const recipient = await prisma.user.findUnique({ 
+  const recipient = await prisma.user.findUnique({
     where: { email: userEmail },
-    select: { id: true, userWalletAddress: true }
+    select: { id: true }
   });
+
   if (!recipient) throw new Error('Recipient user not found');
 
-  // Determine wallet address to use
-  const walletAddress = userWalletAddress || recipient.userWalletAddress;
+  const walletAddress = userWalletAddress
   if (!walletAddress) {
     throw new Error('No wallet address provided or associated with user');
   }
 
-  // Create payment record
+  const generateTempHash = () => {
+    return '0x' + [...Array(64)]
+      .map(() => Math.floor(Math.random() * 16).toString(16))
+      .join('');
+  };
+
   const payment = await prisma.payment.create({
     data: {
       userId: recipient.id,
@@ -46,21 +41,22 @@ export const assignTokenByAdmin = async (adminId, payload) => {
       userWalletAddress: walletAddress,
       isExecuted: false,
       isActive: true,
+      transactionHash: generateTempHash(),
       token: {
         create: {
           token: tokenAmount,
           currentPrice: CURRENT_STAGE_PRICE,
-          ercHash: 'pending',
+          ercHash: generateTempHash(),
         }
-      },
-      include: {
-        token: true
       }
+    },
+    include: {
+      token: true
     }
   });
 
   try {
-    // Call smart contract
+
     const contract = getContractInstance();
     const tx = await contract.distributeTokens(
       walletAddress,
@@ -68,12 +64,13 @@ export const assignTokenByAdmin = async (adminId, payload) => {
       DIVIDUNT
     );
     const receipt = await tx.wait();
+    console.log('Transaction receipt:', receipt);
 
-    // Update records
+
     await prisma.$transaction([
       prisma.payment.update({
         where: { id: payment.id },
-        data: { 
+        data: {
           transactionHash: tx.hash,
           isCompleted: receipt.status === 1,
           isExecuted: true,
@@ -81,7 +78,7 @@ export const assignTokenByAdmin = async (adminId, payload) => {
         }
       }),
       prisma.token.update({
-        where: { id: payment.id },
+        where: { id: payment.token.id },
         data: {
           ercHash: tx.hash,
         }
@@ -89,27 +86,25 @@ export const assignTokenByAdmin = async (adminId, payload) => {
     ]);
 
     return {
-      success: receipt.status === 1,
-      txHash: tx.hash,
+      success: receipt.status === 1, 
       data: {
         tokenAmount,
+        txHash: tx.hash,
         usdtEquivalent,
         walletAddress
       }
     };
 
   } catch (error) {
-    // Clean up failed payment record
     await prisma.payment.update({
       where: { id: payment.id },
-      data: { 
-        isActive: false, 
+      data: {
+        isActive: false,
         isCompleted: false,
         isExecuted: true
       }
     });
-    
-    console.error('Blockchain assignment failed:', error);
+
     throw new Error(`Token assignment failed: ${error.message}`);
   }
 };

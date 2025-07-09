@@ -6,7 +6,8 @@ export const assignTokens = async (req, res) => {
     // Get adminId from middleware-authenticated request
     const adminId=req.user.id;
 
-    const result = await assignTokenByAdmin(adminId, req.body);
+
+    const result = await assignTokenByAdmin( req);
     res.status(200).json(result);
   } catch (error) {
     res.status(400).json({ 

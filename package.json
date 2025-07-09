@@ -37,6 +37,7 @@
     "lodash.isinteger": "^4.0.4",
     "lodash.isnumber": "^3.0.3",
     "lodash.once": "^4.1.1",
+    "morgan": "^1.10.0",
     "pg": "^8.16.0",
     "pstree.remy": "^1.1.8",
     "simple-update-notifier": "^2.0.0",
