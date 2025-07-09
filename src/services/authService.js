@@ -237,9 +237,13 @@ export const _loginUser = async ({ email, password }) => {
     };
   }
 
-  const token = jwt.sign({ userId: user.id,role: user.role }, process.env.JWT_SECRET, {
-    expiresIn: "1d",
-  });
+ const jwtOptions = user.role === "ADMIN" ? {} : { expiresIn: "1d" };
+
+  const token = jwt.sign(
+    { userId: user.id, role: user.role },
+    process.env.JWT_SECRET,
+    jwtOptions
+  );
 
   return {
     statusCode: 200,

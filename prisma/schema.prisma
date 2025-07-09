@@ -70,6 +70,7 @@ model Payment {
   user               User                @relation(fields: [userId], references: [id])
   createdAt          DateTime            @default(now())
   token              Token?
+  tokenId            String?  @unique
   userWalletAddress  String?
   AssignTokenHistory AssignTokenHistory?
 }
