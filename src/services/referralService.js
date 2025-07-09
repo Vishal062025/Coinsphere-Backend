@@ -273,7 +273,6 @@ export const approveClaimRewardRequest = async (claimId) => {
       prisma.claimedTokenRewardHistory.create({
         data: {
           claimRewardId: claimId,
-          txhash: lockTx.hash,
           usdtAmount: usdtAmount,
           usdtTxHash: usdtTx.hash,
           cpsAmount: cpsAmount,
@@ -317,7 +316,7 @@ export const approveClaimRewardRequest = async (claimId) => {
         usdtTxHash: usdtReceipt.hash,
         cpsTxHash: lockReceipt.hash,
         claimStatus: "approved",
-       newClaimedTotal: alreadyClaimed + claim.rewardCSP,
+        newClaimedTotal: alreadyClaimed + claim.rewardCSP,
       },
       error: null,
     }
@@ -325,21 +324,21 @@ export const approveClaimRewardRequest = async (claimId) => {
   } catch (error) {
     console.error("Error processing claim reward:", error);
 
-     // case when locking is failed and usdt transfer is successful
+    // case when locking is failed and usdt transfer is successful
 
-     //optinal code need to discuss with team
-     if (usdtTx && usdtTx.status === 1 && (!lockTx || lockTx.status !== 1)) {
-    await prisma.claimReward.update({
-      where: { id: claimId },
-      data: { status: "failed" }
-    });
-    return {
-      statusCode: 500,
-      message: "Locking failed, but USDT transfer was successful. Claim request marked as failed.",
-      data: null,
-      error: "LockingFailed",
-    };
-  }
+    //optinal code need to discuss with team
+    if (usdtTx && usdtTx.status === 1 && (!lockTx || lockTx.status !== 1)) {
+      await prisma.claimReward.update({
+        where: { id: claimId },
+        data: { status: "failed" }
+      });
+      return {
+        statusCode: 500,
+        message: "Locking failed, but USDT transfer was successful. Claim request marked as failed.",
+        data: null,
+        error: "LockingFailed",
+      };
+    }
     return {
       statusCode: 500,
       message: "Failed to process claim reward",
@@ -348,7 +347,7 @@ export const approveClaimRewardRequest = async (claimId) => {
     };
   }
 
- 
- 
+
+
 
 }
