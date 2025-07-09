@@ -3,7 +3,7 @@ import { getContractInstance } from '../utils/contractUtils.js';
 const { PrismaClient, PointType, PaymentMethod } = pkg;
 const prisma = new PrismaClient();
 import { ethers } from 'ethers';
-    
+
 export const assignTokenByAdmin = async (req) => {
 
   const { userEmail, tokenAmount, userWalletAddress } = req.body;
@@ -82,29 +82,76 @@ export const assignTokenByAdmin = async (req) => {
         data: {
           ercHash: tx.hash,
         }
+      }),
+      prisma.assignTokenHistory.create({
+        data: {
+          adminId: req.user.id,
+          recipientId: recipient.id,
+          tokenAmount: tokenAmount,
+          usdtEquivalent: usdtEquivalent,
+          transactionHash: tx.hash,
+          paymentId: payment.id,
+          status: receipt.status === 1 ? 'success' : 'failed'
+        }
       })
     ]);
 
     return {
-      success: receipt.status === 1, 
+      success: receipt.status === 1,
       data: {
         tokenAmount,
         txHash: tx.hash,
+        adminId: req.user.id,
         usdtEquivalent,
-        walletAddress
+        walletAddress,
+        recipientId: recipient.id,
+        status: 'SUCCESS',
+        message: 'Tokens assigned successfully'
       }
     };
 
   } catch (error) {
-    await prisma.payment.update({
-      where: { id: payment.id },
-      data: {
-        isActive: false,
-        isCompleted: false,
-        isExecuted: true
-      }
-    });
+    console.error('Token assignment failed:', error);
 
-    throw new Error(`Token assignment failed: ${error.message}`);
+    const failedTxHash = tx.hash || `failed-${Date.now()}`;
+    await prisma.$transaction([
+      prisma.payment.update({
+        where: { id: payment.id },
+        data: {
+          isCompleted: false,
+          isExecuted: true,
+          isActive: false,
+          transactionHash: failedTxHash
+        }
+      }),
+      prisma.token.update({
+        where: { id: payment.token.id },
+        data: {
+          ercHash: failedTxHash,
+        }
+      }),
+      prisma.assignTokenHistory.create({
+        data: {
+          adminId: req.user.id,
+          recipientId: recipient.id,
+          tokenAmount: tokenAmount,
+          usdtEquivalent: usdtEquivalent,
+          transactionHash: failedTxHash,
+          paymentId: payment.id,
+          status: 'FAILED'
+        }
+      })
+    ]);
+    return {
+      success: false,
+      error: {
+        message: `Token assignment failed: ${error.message || 'Unknown error'}`,
+        code: error.code || 'UNKNOWN_ERROR',
+        txHash: failedTxHash,
+        status: 'FAILED'
+      }
+    };
+
   }
 };
+

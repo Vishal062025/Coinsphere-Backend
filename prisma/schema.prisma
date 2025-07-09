@@ -35,8 +35,10 @@ model User {
   rewardData   RewardData?
   claimRewards ClaimReward[] @relation("UserClaimRewards")
 
-  referralTreeRoots    ReferralTree[] @relation("RootRef")
-  referralTreeChildren ReferralTree[] @relation("ChildRef")
+  referralTreeRoots    ReferralTree[]       @relation("RootRef")
+  referralTreeChildren ReferralTree[]       @relation("ChildRef")
+  assignedTokens       AssignTokenHistory[] @relation("TokenAssignments")
+  receivedTokens       AssignTokenHistory[] @relation("TokenRecipients")
 }
 
 enum Role {
@@ -57,18 +59,19 @@ model ReferralTree {
 }
 
 model Payment {
-  id                String   @id @default(uuid())
-  amount            Float
-  cryptoType        String
-  transactionHash   String   @unique
-  isCompleted       Boolean  @default(false)
-  isActive          Boolean  @default(true)
-  isExecuted        Boolean  @default(true)
-  userId            String
-  user              User     @relation(fields: [userId], references: [id])
-  createdAt         DateTime @default(now())
-  token             Token?
-  userWalletAddress String?
+  id                 String              @id @default(uuid())
+  amount             Float
+  cryptoType         String
+  transactionHash    String              @unique
+  isCompleted        Boolean             @default(false)
+  isActive           Boolean             @default(true)
+  isExecuted         Boolean             @default(true)
+  userId             String
+  user               User                @relation(fields: [userId], references: [id])
+  createdAt          DateTime            @default(now())
+  token              Token?
+  userWalletAddress  String?
+  AssignTokenHistory AssignTokenHistory?
 }
 
 model Token {
@@ -81,6 +84,21 @@ model Token {
   payment Payment @relation(fields: [paymentId], references: [id])
 }
 
+model AssignTokenHistory {
+  id              String   @id @default(uuid())
+  adminId         String
+  admin           User     @relation(name: "TokenAssignments", fields: [adminId], references: [id])
+  recipientId     String
+  recipient       User     @relation(name: "TokenRecipients", fields: [recipientId], references: [id])
+  tokenAmount     Float
+  usdtEquivalent  Float
+  transactionHash String
+  status          String?  @default("COMPLETED") // pending, completed, failed
+  paymentId       String?  @unique
+  payment         Payment? @relation(fields: [paymentId], references: [id])
+  createdAt       DateTime @default(now())
+}
+
 model Reward {
   id                  String  @id @default(uuid())
   userId              String
@@ -90,8 +108,6 @@ model Reward {
   isTeamReward        Boolean @default(false)
   isCompleted         Boolean @default(false)
   user                User    @relation(fields: [userId], references: [id])
-  // claimId           String? // suggested to link to ClaimReward
-  // claimedAt         DateTime? // suggested to link to ClaimReward
 }
 
 model RewardData {
@@ -121,7 +137,6 @@ enum ClaimStatus {
 model ClaimedTokenRewardHistory {
   id            String   @id @default(uuid())
   claimRewardId String   @unique
-  txhash        String
   usdtAmount    Float
   usdtTxHash    String   @unique
   cspAmount     Float
