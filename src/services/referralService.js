@@ -192,7 +192,6 @@ export const _approveClaimRewardRequest = async (claimId) => {
             where: {
               isCompleted: false
             }
-
           },
           rewardData: true,
         }
@@ -219,12 +218,14 @@ export const _approveClaimRewardRequest = async (claimId) => {
     };
   }
 
-  //  Calculate actual available balance
-  const totalUnclaimedRewards = claim.user.rewards.reduce(
-    (sum, reward) => sum + reward.rewardCSP, 0
-  );
+  const totalRewards = await prisma.reward.aggregate({
+    where: { userId: claim.userId },
+    _sum: { rewardCSP: true }
+  });
+  const totalRewardCSP = Number(totalRewards._sum.rewardCSP || 0);
   const alreadyClaimed = claim.user.rewardData?.claimedCSP || 0;
-  const availableBalance = totalUnclaimedRewards - alreadyClaimed;
+  const availableBalance = totalRewardCSP - alreadyClaimed;
+
 
   // 4. Validate sufficient balance
   if (availableBalance < claim.rewardCSP) {
@@ -247,7 +248,6 @@ export const _approveClaimRewardRequest = async (claimId) => {
       ethers.parseUnits(usdtAmount.toString(), 6)
     );
     const usdtReceipt = await usdtTx.wait();
-
     const cpsIcoContract = getContractInstance();
     lockTx = await cpsIcoContract.distributeTokens(
       claim.userWalletAddress,

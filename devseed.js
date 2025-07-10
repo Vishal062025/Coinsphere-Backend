@@ -21,7 +21,7 @@ async function seedRewardsForDevashish() {
         userId: user.id,
         rewardById: 'system',
         referralPurchaseCSP: 1500,
-        rewardCSP: 7500,
+        rewardCSP:12000,
         isTeamReward: false,
         isCompleted: false,
       },
@@ -29,7 +29,7 @@ async function seedRewardsForDevashish() {
         userId: user.id,
         rewardById: 'system',
         referralPurchaseCSP: 1200,
-        rewardCSP: 6000,
+        rewardCSP: 120000,
         isTeamReward: true,
         isCompleted: false,
       },
@@ -38,16 +38,16 @@ async function seedRewardsForDevashish() {
   console.log("✅ New rewards seeded for Devashish");
 
   // ✅ Optionally reset claimedCSP (e.g., to 0)
-  await prisma.rewardData.upsert({
-    where: { userId: user.id },
-    create: {
-      userId: user.id,
-      claimedCSP: 0,
-    },
-    update: {
-      claimedCSP: 0, // Resetting claimedCSP for testing
-    },
-  });
+  // await prisma.rewardData.upsert({
+  //   where: { userId: user.id },
+  //   create: {
+  //     userId: user.id,
+  //     claimedCSP: 0,
+  //   },
+  //   update: {
+  //     claimedCSP: 0, // Resetting claimedCSP for testing
+  //   },
+  // });
 
   console.log("✅ RewardData reset/seeded for Devashish");
 }
