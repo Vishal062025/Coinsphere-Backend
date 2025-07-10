@@ -10,7 +10,7 @@ import blockchainRoutes from './routes/blockchainRoutes.js'
 import userRoutes from './routes/user.js'
 import pkg from '@prisma/client';
 import morgan from 'morgan';
-// import { pollSQS } from './jobs/sqsClient.js';
+ import { pollSQS } from './jobs/sqsClient.js';
 
 const { PrismaClient } = pkg;
 
@@ -47,4 +47,4 @@ app.get('/', (req, res) => res.send('API Running'));
 // Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-// pollSQS(verboseSQSLogs);
+pollSQS(verboseSQSLogs);
