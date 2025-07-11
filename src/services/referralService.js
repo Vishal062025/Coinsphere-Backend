@@ -181,7 +181,7 @@ export const _createClaimRewardRequest = async (req) => {
 };
 
 
-export const approveClaimRewardRequest = async (claimId) => {
+export const _approveClaimRewardRequest = async (claimId) => {
 
   const claim = await prisma.claimReward.findUnique({
     where: { id: claimId },
@@ -191,13 +191,14 @@ export const approveClaimRewardRequest = async (claimId) => {
           rewards: {
             where: {
               isCompleted: false
-            },
-            rewardData: true,
-          }
+            }
+          },
+          rewardData: true,
         }
       }
     }
   });
+  console.log('line no 201', claim.status)
 
   if (!claim) {
     return {
@@ -217,21 +218,14 @@ export const approveClaimRewardRequest = async (claimId) => {
     };
   }
 
-  // if (!claim.user.rewardData || claim.user.rewardData.claimedCSP >= claim.rewardCSP) {
-  //   return {
-  //     statusCode: 403,
-  //     message: "User doesn't have sufficient reward balance to claim",
-  //     data: null,
-  //     error: "forbidden",
-  //   };
-  // }
-
-  //  Calculate actual available balance
-  const totalUnclaimedRewards = claim.user.rewards.reduce(
-    (sum, reward) => sum + reward.rewardCSP, 0
-  );
+  const totalRewards = await prisma.reward.aggregate({
+    where: { userId: claim.userId },
+    _sum: { rewardCSP: true }
+  });
+  const totalRewardCSP = Number(totalRewards._sum.rewardCSP || 0);
   const alreadyClaimed = claim.user.rewardData?.claimedCSP || 0;
-  const availableBalance = totalUnclaimedRewards - alreadyClaimed;
+  const availableBalance = totalRewardCSP - alreadyClaimed;
+
 
   // 4. Validate sufficient balance
   if (availableBalance < claim.rewardCSP) {
@@ -243,9 +237,8 @@ export const approveClaimRewardRequest = async (claimId) => {
     };
   }
 
-
   const usdtAmount = parseFloat((claim.rewardCSP * 0.5).toFixed(6));
-  const cpsAmount = parseFloat((claim.rewardCSP * 0.5).toFixed(6));
+  const cspAmount = parseFloat((claim.rewardCSP * 0.5).toFixed(6));
   const DIVIDUNT = parseFloat(process.env.DIVIDUNT || '25');
 
   let usdtTx, lockTx;
@@ -255,11 +248,10 @@ export const approveClaimRewardRequest = async (claimId) => {
       ethers.parseUnits(usdtAmount.toString(), 6)
     );
     const usdtReceipt = await usdtTx.wait();
-
     const cpsIcoContract = getContractInstance();
     lockTx = await cpsIcoContract.distributeTokens(
       claim.userWalletAddress,
-      ethers.parseUnits(cpsAmount.toString(), 18),
+      ethers.parseUnits(cspAmount.toString(), 18),
       DIVIDUNT
     )
 
@@ -268,17 +260,17 @@ export const approveClaimRewardRequest = async (claimId) => {
     await prisma.$transaction([
       prisma.claimReward.update({
         where: { id: claimId },
-        data: { status: "approved" }
+        data: {
+          status: "approved"
+        }
       }),
       prisma.claimedTokenRewardHistory.create({
         data: {
           claimRewardId: claimId,
-          usdtAmount: usdtAmount,
+          usdtAmount,
           usdtTxHash: usdtTx.hash,
-          cpsAmount: cpsAmount,
-          cpsTxHash: lockTx.hash,
-
-
+          cspAmount,
+          cspTxHash: lockTx.hash,
         }
       }),
 
@@ -302,7 +294,7 @@ export const approveClaimRewardRequest = async (claimId) => {
         },
         data: {
           isCompleted: true,
-          claimId: claimId
+
         }
       })
     ]);
@@ -311,10 +303,10 @@ export const approveClaimRewardRequest = async (claimId) => {
       message: "Claim reward request approved successfully",
       data: {
         claimId: claim.id,
-        usdtAmount,
-        cpsAmount,
+        usdtAmount: usdtAmount,
+        cspAmount: cspAmount,
         usdtTxHash: usdtReceipt.hash,
-        cpsTxHash: lockReceipt.hash,
+        cspTxHash: lockReceipt.hash,
         claimStatus: "approved",
         newClaimedTotal: alreadyClaimed + claim.rewardCSP,
       },
@@ -323,31 +315,32 @@ export const approveClaimRewardRequest = async (claimId) => {
 
   } catch (error) {
     console.error("Error processing claim reward:", error);
-
-    // case when locking is failed and usdt transfer is successful
-
-    //optinal code need to discuss with team
-    if (usdtTx && usdtTx.status === 1 && (!lockTx || lockTx.status !== 1)) {
-      await prisma.claimReward.update({
-        where: { id: claimId },
-        data: { status: "failed" }
-      });
-      return {
-        statusCode: 500,
-        message: "Locking failed, but USDT transfer was successful. Claim request marked as failed.",
-        data: null,
-        error: "LockingFailed",
-      };
-    }
-    return {
-      statusCode: 500,
-      message: "Failed to process claim reward",
-      data: null,
-      error: error.message || String(error),
-    };
   }
-
-
-
-
 }
+// case when locking is failed and usdt transfer is successful
+
+//optinal code need to discuss with team
+//   if (usdtTx && usdtTx.status === 1 && (!lockTx || lockTx.status !== 1)) {
+//     await prisma.claimReward.update({
+//       where: { id: claimId },
+//       data: { status: "failed" }
+//     });
+//     return {
+//       statusCode: 500,
+//       message: "Locking failed, but USDT transfer was successful. Claim request marked as failed.",
+//       data: null,
+//       error: "LockingFailed",
+//     };
+//   }
+//   return {
+//     statusCode: 500,
+//     message: "Failed to process claim reward",
+//     data: null,
+//     error: error.message || String(error),
+//   };
+
+
+
+
+
+
