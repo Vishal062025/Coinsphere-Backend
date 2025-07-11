@@ -140,7 +140,6 @@ export const _getAllAssignedTokens = async () => {
 export const _adminCreateUser = async (req, res) => {
   const {
     email,
-    password,
     firstName,
     lastName,
     dob,

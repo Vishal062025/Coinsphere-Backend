@@ -230,10 +230,10 @@ export const _approveClaimRewardRequest = async (claimId) => {
   // 4. Validate sufficient balance
   if (availableBalance < claim.rewardCSP) {
     return {
-      statusCode: 403,
+      statusCode: 400,
       message: `Insufficient reward balance. Available: ${availableBalance}, Requested: ${claim.rewardCSP}`,
       data: { availableBalance, requestedAmount: claim.rewardCSP },
-      error: "Forbidden",
+      error: `Insufficient reward balance`,
     };
   }
 

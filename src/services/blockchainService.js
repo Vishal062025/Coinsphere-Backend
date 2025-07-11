@@ -6,7 +6,9 @@ import { ethers } from 'ethers';
 
 export const assignTokenByAdmin = async (req) => {
 
-  const { userEmail, tokenAmount, userWalletAddress } = req.body;
+  const { userEmail, userWalletAddress } = req.body;
+  const tokenAmount = parseFloat(req.body.tokenAmount);
+
   if (!userEmail || !tokenAmount || tokenAmount <= 0) {
     throw new Error('Invalid parameters: Provide valid email and positive token amount');
   }

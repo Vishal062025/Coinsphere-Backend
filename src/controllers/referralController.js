@@ -25,7 +25,7 @@ export const createClaimRewardRequest = async (req, res) => {
 
 export const approveClaimRewardRequest = async (req, res) => {
   try {
-    const { claimId } = req.params;
+    const { claimId } = req.body;
     const result = await _approveClaimRewardRequest(claimId);
 
     if (!result || typeof result.statusCode !== 'number') {

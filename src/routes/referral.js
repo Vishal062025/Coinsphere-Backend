@@ -8,7 +8,7 @@ import {
 const router = express.Router();
 
 router.get('/', authMiddleware, handleReferral);
-router.post('/approve-claim/:claimId', authMiddleware, authorizeRoles('ADMIN', 'SUPER_ADMIN'),  approveClaimRewardRequest); 
+router.post('/approve-claim', authMiddleware, authorizeRoles('ADMIN'),  approveClaimRewardRequest); 
 
 
 export default router;
