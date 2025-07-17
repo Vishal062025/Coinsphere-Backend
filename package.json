@@ -39,6 +39,7 @@
     "lodash.isnumber": "^3.0.3",
     "lodash.once": "^4.1.1",
     "morgan": "^1.10.0",
+    "nodemailer": "^7.0.5",
     "pg": "^8.16.0",
     "pstree.remy": "^1.1.8",
     "simple-update-notifier": "^2.0.0",
